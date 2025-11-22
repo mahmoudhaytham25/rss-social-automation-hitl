@@ -1,0 +1,230 @@
+{
+  "name": "Linkedin branch",
+  "nodes": [
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "77a51361-43bd-4508-98ce-a68bcedd57fa",
+              "leftValue": "={{ $json.imageUrl }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -560,
+        -848
+      ],
+      "id": "ac631caf-9edc-429e-ac80-6d158b1ca80f",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {
+          "clashHandling": {
+            "values": {
+              "resolveClash": "preferInput1"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -112,
+        -928
+      ],
+      "id": "081611ed-319d-4356-b8bf-6d68bd3ea499",
+      "name": "Merge1"
+    },
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "f3dde7bb-4f2b-4e1f-a692-df1273e2a1f7",
+      "typeVersion": 1.1,
+      "name": "Start",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        -1008,
+        -848
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "let outputs= [];\n\nfor (const item of $input.all()) {\n  let post = item.json.output.content\n  post = post.replace(/\\\\/g, \"\\\\\\\\\");\n  post = post.replace(/\"/g, '\\\\\"');\n\n  let title = item.json.title;\n  title = title.replace(/\\\\/g, \"\\\\\\\\\");\n  title = title.replace(/\"/g, '\\\\\"');\n  item.json.title = title;\n  \n  item.json.facebook = post;\n  \n  outputs.push(item);\n}\nreturn outputs;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -784,
+        -848
+      ],
+      "id": "2f559dd8-f9c4-4a9e-bb0d-0914055f06d8",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.imageUrl }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -336,
+        -992
+      ],
+      "id": "7df51c2f-0c8f-40ff-a0c7-877e08a1003c",
+      "name": "Download Image from RSS",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "person": "YkzIh5y9Da",
+        "text": "={{  $json.output.content }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.linkedIn",
+      "typeVersion": 1,
+      "position": [
+        -336,
+        -704
+      ],
+      "id": "3b853a30-5257-4612-b6cc-afd4d0313794",
+      "name": "Create a post WO/img",
+      "credentials": {
+        "linkedInOAuth2Api": {
+          "id": "SwVayuxddjxAk47D",
+          "name": "LinkedIn account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "person": "YkzIh5y9Da",
+        "text": "={{  $json.output.content }}",
+        "shareMediaCategory": "IMAGE",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.linkedIn",
+      "typeVersion": 1,
+      "position": [
+        112,
+        -928
+      ],
+      "id": "35ac65d8-ce28-46f9-ba50-8f5270a78cab",
+      "name": "Create a post W/img",
+      "credentials": {
+        "linkedInOAuth2Api": {
+          "id": "SwVayuxddjxAk47D",
+          "name": "LinkedIn account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Merge1": {
+      "main": [
+        [
+          {
+            "node": "Create a post W/img",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 1
+          },
+          {
+            "node": "Download Image from RSS",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Create a post WO/img",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Image from RSS": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "8167f078-af8d-4fa8-a993-65cd80d4dddd",
+  "meta": {
+    "instanceId": "420fca2d7bc467baee3a06a86e7751ed6719fffd14e9933f13f800752c4a9fdb"
+  },
+  "id": "q2qKF9EkXT8XnINX",
+  "tags": []
+}

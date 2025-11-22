@@ -1,0 +1,578 @@
+{
+  "name": "Post creation flow",
+  "nodes": [
+    {
+      "parameters": {
+        "fileSelector": "/n8n/data/FirstAIMoversP3.xlsx",
+        "options": {
+          "dataPropertyName": "data"
+        }
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        -1360,
+        -832
+      ],
+      "id": "1b2fcb03-f356-47e4-9cdb-11b754fae12d",
+      "name": "Read/Write Files from Disk"
+    },
+    {
+      "parameters": {
+        "operation": "xlsx",
+        "binaryPropertyName": "=data",
+        "options": {
+          "headerRow": true
+        }
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        -1216,
+        -832
+      ],
+      "id": "9a741045-f3cd-409d-b1b5-6ce8aae79d6e",
+      "name": "Extract from File"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -1040,
+        -768
+      ],
+      "id": "e7fc2453-1825-4c86-ad1f-7ac98bfdc562",
+      "name": "Merge2"
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n\t\"properties\": {\n\t\t\"content\": {\n\t\t\t\"type\": \"string\",\n            \"minLength\": 0\n\t\t}\n    }\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        -1760,
+        -432
+      ],
+      "id": "8cbc50a7-8a35-48e1-b3a7-5045a8e6f60e",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "operation": "xlsx",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        -896,
+        -768
+      ],
+      "id": "d84e6e5d-147e-4543-8029-c6968e2346cc",
+      "name": "Convert to File"
+    },
+    {
+      "parameters": {
+        "operation": "write",
+        "fileName": "/n8n/data/FirstAIMoversP3.xlsx",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        -752,
+        -768
+      ],
+      "id": "ab2fed05-730a-4394-80ae-cfb23cd08599",
+      "name": "Read/Write Files from Disk1",
+      "notesInFlow": false
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "cd696f07-297b-4695-a241-cae6c32bd809",
+              "name": "Datetime",
+              "value": "={{ $today }}",
+              "type": "string"
+            },
+            {
+              "id": "e3c2dd78-ee28-49e8-9f64-56b6c05d766c",
+              "name": "Branch",
+              "value": "={{ $json.branch }}",
+              "type": "string"
+            },
+            {
+              "id": "6e587ffd-5450-4270-be95-05ba6990335b",
+              "name": "Content",
+              "value": "={{ $json.output.content }}",
+              "type": "string"
+            },
+            {
+              "id": "d59849df-e3f0-48cf-89e5-35f77c0c637b",
+              "name": "Length",
+              "value": "={{ $json.output.length }}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1280,
+        -640
+      ],
+      "id": "c2d82ed8-f878-4a7a-955d-85470b0c6bb8",
+      "name": "Create log records"
+    },
+    {
+      "parameters": {
+        "jsCode": "for (const item of $input.all()) {    \n  item.json.output.content += \" \" + item.json.link+ \" #FirstAIMovers\"\n  \n  item.json.output.length = item.json.output.content.length;\n  \n  if (item.json.output?.content && item.json.output.length > item.json.limit) {\n    item.json.output.continue = false;\n    continue;\n  }\n\n  item.json.output.continue= true;\n}\n\nreturn $input.all();"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1504,
+        -640
+      ],
+      "id": "8465b813-db55-4d43-ac62-1c55a67e62e2",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "f3d281b9-09f8-42f3-862b-1224d4fe267b",
+              "leftValue": "={{ $json.output.continue }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -1392,
+        -400
+      ],
+      "id": "8ca05518-7ead-42a3-a525-e552871044fe",
+      "name": "If2"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -2016,
+        -432
+      ],
+      "id": "4daab3ef-f10b-471d-ad72-fa273a0f63c8",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "NMyzSiwevV6bkBaH",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.userPrompt }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "={{ $json.sysPrompt }}",
+          "batching": {
+            "batchSize": 1,
+            "delayBetweenBatches": 20000
+          }
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        -1984,
+        -656
+      ],
+      "id": "80f702e3-d6d1-4054-b8a1-8d2b112f5503",
+      "name": "AI Agent",
+      "retryOnFail": true,
+      "maxTries": 5
+    },
+    {
+      "parameters": {
+        "description": "Call this tool to count characters in a string. Returns ONLY number of characters in a string.",
+        "jsCode": "return query.length"
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.3,
+      "position": [
+        -1888,
+        -432
+      ],
+      "id": "6816a945-7013-4070-bfa6-56615409351a",
+      "name": "Character Count"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -1648,
+        -800
+      ],
+      "id": "d9df8687-1ca2-4118-8872-7e79fd0faadc",
+      "name": "Merge3"
+    },
+    {
+      "parameters": {
+        "jsCode": "const output = [];\n// Iterate and assign index\nfor (const item of $input.all()) {\n  output.push({\n    json: {\n      index: item.json.index,\n      title: item.json.title,\n      link: item.json.link,\n      imageUrl: item.json.imageUrl || null,\n      paragraphs: item.json.paragraphs || null,\n      sysPrompt: item.json.sysPrompt,\n      userPrompt: item.json.userPrompt,\n      branch: item.json.branch,\n      limit: item.json.limit\n    }\n  });\n}\n\nreturn output;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1136,
+        -384
+      ],
+      "id": "93510fd3-9e9a-4bd6-896c-ab3231d4cb97",
+      "name": "Code2"
+    },
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "3beaff40-3775-4b72-b3f1-1d356956ca99",
+      "typeVersion": 1.1,
+      "name": "Start",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        -2192,
+        -720
+      ]
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        -752,
+        -496
+      ],
+      "id": "4155c061-be0a-4a27-95b4-691a7958e21f",
+      "name": "Final",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "477ab0d0-20a1-40b2-97cd-cea0dec893a6",
+              "name": "output",
+              "value": "={{ $json.output }}",
+              "type": "object"
+            },
+            {
+              "id": "ceaf24a3-f699-4d6b-8625-9818a15765cb",
+              "name": "title",
+              "value": "={{ $json.title }}",
+              "type": "string"
+            },
+            {
+              "id": "872e3856-f7fb-4979-a0ac-ced18cd5704b",
+              "name": "link",
+              "value": "={{ $json.link }}",
+              "type": "string"
+            },
+            {
+              "id": "fd98d66b-d9e9-4913-93ae-dabf56524322",
+              "name": "imageUrl",
+              "value": "={{ $json.imageUrl }}",
+              "type": "string"
+            },
+            {
+              "id": "43bd8105-40ca-40bd-a57d-d566f5c94a6c",
+              "name": "paragraphs",
+              "value": "={{ $json.paragraphs }}",
+              "type": "array"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -896,
+        -496
+      ],
+      "id": "1f9e889c-c23d-420f-8074-af3ed51fb54f",
+      "name": "Output data"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        -624,
+        -768
+      ],
+      "id": "ce32d51c-17b8-47cb-82ce-d3ac70fa8e98",
+      "name": "No Operation, do nothing"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Read/Write Files from Disk": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "Merge2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge2": {
+      "main": [
+        [
+          {
+            "node": "Convert to File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert to File": {
+      "main": [
+        [
+          {
+            "node": "Read/Write Files from Disk1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create log records": {
+      "main": [
+        [
+          {
+            "node": "Merge2",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "If2",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Create log records",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Read/Write Files from Disk",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If2": {
+      "main": [
+        [
+          {
+            "node": "Output data",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Merge3",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Character Count": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge3": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code2": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read/Write Files from Disk1": {
+      "main": [
+        [
+          {
+            "node": "No Operation, do nothing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Output data": {
+      "main": [
+        [
+          {
+            "node": "Final",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "No Operation, do nothing": {
+      "main": [
+        [
+          {
+            "node": "Final",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "callerPolicy": "workflowsFromSameOwner",
+    "executionOrder": "v1"
+  },
+  "versionId": "8db7335d-4a52-42b5-9448-b276dca64085",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "420fca2d7bc467baee3a06a86e7751ed6719fffd14e9933f13f800752c4a9fdb"
+  },
+  "id": "9WUvqETxyFrEav7H",
+  "tags": []
+}

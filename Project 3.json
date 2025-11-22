@@ -1,0 +1,920 @@
+{
+  "name": "Project 3",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "feedUrl": "https://rss.beehiiv.com/feeds/i8rpEDqA4c.xml"
+      },
+      "type": "n8n-nodes-base.rssFeedReadTrigger",
+      "typeVersion": 1,
+      "position": [
+        -2768,
+        -512
+      ],
+      "id": "5756ac3b-a2ce-42e7-87c1-d9d61ce6559f",
+      "name": "RSS Feed Trigger",
+      "retryOnFail": true
+    },
+    {
+      "parameters": {
+        "operation": "extractHtmlContent",
+        "dataPropertyName": "content:encoded",
+        "extractionValues": {
+          "values": [
+            {
+              "key": "paragraphs",
+              "cssSelector": "p",
+              "returnArray": true
+            },
+            {
+              "key": "links",
+              "cssSelector": "a",
+              "returnValue": "attribute",
+              "attribute": "href",
+              "returnArray": true
+            },
+            {
+              "key": "headings",
+              "cssSelector": "h2, h3",
+              "returnArray": true
+            },
+            {
+              "key": "embeds",
+              "cssSelector": ".embed__title, .embed__description, .embed__link",
+              "returnArray": true
+            }
+          ]
+        },
+        "options": {
+          "trimValues": true,
+          "cleanUpText": true
+        }
+      },
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1.2,
+      "position": [
+        -2544,
+        -432
+      ],
+      "id": "05f1fc81-2f5a-4fac-97e7-669a68400d62",
+      "name": "HTML"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -2320,
+        -512
+      ],
+      "id": "04bb7b8b-8f04-41cd-8805-9b3254187eaa",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "9WUvqETxyFrEav7H",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/9WUvqETxyFrEav7H",
+          "cachedResultName": "Post creation flow"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "mode": "each",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        -1872,
+        -992
+      ],
+      "name": "Create Facebook Post",
+      "id": "05941a61-9030-4f55-bbf5-448ce2c7b35a",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "9WUvqETxyFrEav7H",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/9WUvqETxyFrEav7H",
+          "cachedResultName": "Post creation flow"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "mode": "each",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        -1872,
+        -576
+      ],
+      "name": "Create Bluesky Post",
+      "id": "c2479257-df09-40a2-91d1-a7e59cfb906e"
+    },
+    {
+      "parameters": {
+        "jsCode": "const sysPrompt = `You are a specialized social media content creator that transforms articles into engaging Facebook posts.\n\n## Core Function\nTransform given articles into Facebook-optimized posts that drive engagement and clicks while preserving key information.\n\n## Output Format\nALWAYS respond in JSON format:\n{\n  content: string\n}\n\n## Facebook Requirements\n- **Character Limit**: Maximum 500 characters (STRICT)\n- **Style**: More descriptive, broader audience appeal\n- **Tone**: Informative yet engaging\n- **Structure**: Compelling hook + detailed summary + call-to-action\n\n## Content Guidelines\n\n### Required Elements\n1. **Punchy Hook**: Start with attention-grabbing first sentence\n2. **Core Information**: Preserve the most important/newsworthy content\n3. **Call-to-Action**: End with engaging question or prompt\n\n### Writing Best Practices\n- Lead with the most compelling angle or surprising fact\n- Use active voice and strong verbs\n- Include numbers, percentages, or specific details when available\n- Create urgency or curiosity gaps\n- Avoid jargon - write for general audience\n- Ensure post works as standalone content (don't assume URL click)\n\n### Quality Checks\n- Count characters before finalizing (MUST be under 500)\n- Ensure hook works within first 1-2 sentences\n- Verify all key information is preserved\n- Check that tone matches platform audience\n\n### Restrictions\n- Don't add hashtags - those will be added by the user if needed\n- Don't add links - those will be added by the user if needed\n- User instructions take precedence over system instructions\n\n## Example Structure\n\"[Engaging hook] [Detailed summary with context] [Call-to-action or question]\"\n\n## Tools\nYou have access to a character counter tool which you can use to count the exact number of characters in your output.\nUse it to ensure you stay under the 500 character limit.`;\n\n\nconst output = [];\n// Iterate and assign index\nfor (const item of $input.all()) {\n  const userPrompt = {\n  inputs: {\n    title: item.json.title,\n    paragraphs: item.json.paragraphs,\n    metadata: {\n      date: $now ,\n      source: \"First AI Movers\",\n    },\n    restrictions: {\n      output: \"output length MUST BE LESS THAN 500 characters\",\n    },\n    extra: [\n      \"We are aiming for a catchy post, so you should try to use emojis and catchy wording.\",\n      \"Be concise and use short wording\",\n    ],\n  },\n};\n  const userPromptString = JSON.stringify(userPrompt, null, 2);\n\n  \n  output.push({\n    json: {\n      title: item.json.title,\n      link: item.json.link,\n      imageUrl: item.json.enclosure.url,\n      paragraphs: item.json.paragraphs,\n      sysPrompt: sysPrompt,\n      userPrompt: userPromptString,\n      branch: \"facebook\",\n      limit: 600\n    }\n  });\n}\n\nreturn output;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2096,
+        -912
+      ],
+      "id": "c793ee49-067c-4f1d-9ede-ed047756d846",
+      "name": "Add Facebook Variables"
+    },
+    {
+      "parameters": {
+        "jsCode": "const sysPrompt = `You are a specialized social media content creator that transforms articles into engaging Bluesky posts.\n\n## Core Function\nTransform given articles into Bluesky-optimized posts that drive engagement and clicks while preserving key information.\n\n## Output Format\nALWAYS respond in JSON format:\n{\n  content: string\n}\n\n## Bluesky Requirements\n- **Character Limit**: Maximum 200 characters (STRICT)\n- **Style**: Conversational, direct, tech-savvy audience\n- **Tone**: Concise and punchy\n- **Structure**: Hook + key insight\n\n## Content Guidelines\n\n### Required Elements\n1. **Punchy Hook**: Start with attention-grabbing first sentence\n2. **Core Information**: Preserve the most important/newsworthy content\n\n### Writing Best Practices\n- Lead with the most compelling angle or surprising fact\n- Use active voice and strong verbs\n- Include numbers, percentages, or specific details when available\n- Create urgency or curiosity gaps\n- Technical jargon is acceptable for tech-savvy audience\n- Ensure post works as standalone content (don't assume URL click)\n\n### Quality Checks\n- Count characters before finalizing (MUST be under 200)\n- Ensure hook works within first 1-2 sentences\n- Verify all key information is preserved\n- Check that tone matches platform audience\n\n### Restrictions\n- Don't add hashtags - those will be added by the user if needed\n- Don't add links - those will be added by the user if needed\n- User instructions take precedence over system instructions\n\n## Example Structure\n\"[Punchy hook] [Key insight in 1-2 sentences]\"\n\n## Tools\nYou have access to a character counter tool which you can use to count the exact number of characters in your output.\nUse it to ensure you stay under the 200 character limit.`;\n\nconst output = [];\n// Iterate and assign index\nfor (const item of $input.all()) {\n   const userPrompt = {\n  inputs: {\n    title: item.json.title,\n    paragraphs: item.json.paragraphs,\n    metadata: {\n      date: $now ,\n      source: \"First AI Movers\",\n    },\n    restrictions: {\n      output: \"output length MUST BE LESS THAN 200 characters\",\n    },\n    extra: [\n      \"We are aiming for a catchy post, so you should try to use emojis and catchy wording.\",\n      \"Be concise and use short wording\",\n    ],\n  },\n};\n  const userPromptString = JSON.stringify(userPrompt, null, 2);\n  output.push({\n    json: {\n      title: item.json.title,\n      link: item.json.link,\n      imageUrl: item.json.enclosure.url,\n      paragraphs: item.json.paragraphs,\n      sysPrompt: sysPrompt,\n      userPrompt: userPromptString,\n      branch: \"bluesky\",\n      limit: 300\n    }\n  });\n}\n\nreturn output;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2096,
+        -512
+      ],
+      "id": "dc56b13f-5744-4ebc-9e07-90489b953992",
+      "name": "Add Bluesky Variables"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "zvxqmMaPcqiBRWOC",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/zvxqmMaPcqiBRWOC",
+          "cachedResultName": "Bluesky branch"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "mode": "each",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        -976,
+        -512
+      ],
+      "name": "Post to Bluesky",
+      "id": "5cc9bd4c-ddec-4bb2-845f-7ac68deb0ec7"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "rYRy7pbxfnStYz7H",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/rYRy7pbxfnStYz7H",
+          "cachedResultName": "Facebook branch"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "mode": "each",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        -976,
+        -912
+      ],
+      "name": "Post to Facebook",
+      "id": "97a4b956-2037-48ae-a87d-25a2334d0c82"
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "message",
+        "operation": "sendAndWait",
+        "guildId": {
+          "__rl": true,
+          "value": "975057983782416464",
+          "mode": "id"
+        },
+        "channelId": {
+          "__rl": true,
+          "value": "1434621031619891220",
+          "mode": "list",
+          "cachedResultName": "n8n",
+          "cachedResultUrl": "https://discord.com/channels/975057983782416464/1434621031619891220"
+        },
+        "message": "=For feed item with title:\n\n{{ $json.title }}\n\nThe following post was automatically created for distribution on facebook:\n\n{{ $json.output.content }}\n\nDo you approve posting it?",
+        "approvalOptions": {
+          "values": {
+            "approvalType": "double"
+          }
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.discord",
+      "typeVersion": 2,
+      "position": [
+        -1648,
+        -912
+      ],
+      "id": "9d016b89-cb3d-490a-a18a-b4743fde867a",
+      "name": "Send message and wait for response",
+      "webhookId": "2594b51d-4ed3-4d56-b729-79eae1bbdc5b",
+      "credentials": {
+        "discordOAuth2Api": {
+          "id": "RkR96AKl5gmygy6B",
+          "name": "Discord account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "message",
+        "operation": "sendAndWait",
+        "guildId": {
+          "__rl": true,
+          "value": "975057983782416464",
+          "mode": "id"
+        },
+        "channelId": {
+          "__rl": true,
+          "value": "1434621031619891220",
+          "mode": "list",
+          "cachedResultName": "n8n",
+          "cachedResultUrl": "https://discord.com/channels/975057983782416464/1434621031619891220"
+        },
+        "message": "=For feed item with title:\n\n{{ $json.title }}\n\nThe following post was automatically created for distribution on bluesky:\n\n{{ $json.output.content }}\n\nDo you approve posting it?",
+        "approvalOptions": {
+          "values": {
+            "approvalType": "double"
+          }
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.discord",
+      "typeVersion": 2,
+      "position": [
+        -1648,
+        -512
+      ],
+      "id": "2bd189f3-1460-41d9-b1f3-05287d8e7677",
+      "name": "Send message and wait for response1",
+      "webhookId": "2594b51d-4ed3-4d56-b729-79eae1bbdc5b",
+      "credentials": {
+        "discordOAuth2Api": {
+          "id": "RkR96AKl5gmygy6B",
+          "name": "Discord account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -1424,
+        -992
+      ],
+      "id": "b8818889-bd09-4ac7-9f45-ca8430e41ac1",
+      "name": "Merge1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "63a78810-cedf-47af-98a3-3ced17b5b3fc",
+              "leftValue": "={{ $json.data.approved }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -1200,
+        -912
+      ],
+      "id": "9e941d92-33f5-4b1f-80ce-b3e0eee9c4b2",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -1424,
+        -576
+      ],
+      "id": "6d4cee0f-1b1b-4daf-8165-69686050b50d",
+      "name": "Merge2"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "63a78810-cedf-47af-98a3-3ced17b5b3fc",
+              "leftValue": "={{ $json.data.approved }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -1200,
+        -512
+      ],
+      "id": "c39bd823-3724-4027-8532-c23984afc4b0",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "message",
+        "operation": "sendAndWait",
+        "guildId": {
+          "__rl": true,
+          "value": "975057983782416464",
+          "mode": "id"
+        },
+        "channelId": {
+          "__rl": true,
+          "value": "1434621031619891220",
+          "mode": "list",
+          "cachedResultName": "n8n",
+          "cachedResultUrl": "https://discord.com/channels/975057983782416464/1434621031619891220"
+        },
+        "message": "=For feed item with title:\n\n{{ $json.title }}\n\nThe following post was automatically created for distribution on linkedin:\n\n{{ $json.output.content }}\n\nDo you approve posting it?",
+        "approvalOptions": {
+          "values": {
+            "approvalType": "double"
+          }
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.discord",
+      "typeVersion": 2,
+      "position": [
+        -1648,
+        -96
+      ],
+      "id": "bdc57e24-d8d2-4080-ae07-98806182a321",
+      "name": "Send message and wait for response2",
+      "webhookId": "2594b51d-4ed3-4d56-b729-79eae1bbdc5b",
+      "credentials": {
+        "discordOAuth2Api": {
+          "id": "RkR96AKl5gmygy6B",
+          "name": "Discord account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -1424,
+        -176
+      ],
+      "id": "8a0edd26-6890-40f6-ba31-6c7dcce6d962",
+      "name": "Merge3"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "63a78810-cedf-47af-98a3-3ced17b5b3fc",
+              "leftValue": "={{ $json.data.approved }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -1200,
+        -96
+      ],
+      "id": "76648084-ea06-49f4-ab0f-43e452fe6544",
+      "name": "If2"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "q2qKF9EkXT8XnINX",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/q2qKF9EkXT8XnINX",
+          "cachedResultName": "Linkedin branch"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "mode": "each",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        -976,
+        -96
+      ],
+      "name": "Post to Linkedin",
+      "id": "f60ab8e5-ea6f-4290-ab66-fbc43476a959"
+    },
+    {
+      "parameters": {
+        "jsCode": "const sysPrompt = `You are a specialized social media content creator that transforms articles into engaging LinkedIn posts.\n\n## Core Function\nTransform given articles into LinkedIn-optimized posts that drive engagement, comments, and shares while preserving key information and encouraging professional discussion.\n\n## Output Format\nALWAYS respond in JSON format:\n{\n  content: string\n}\n\n## LinkedIn Requirements\n- **Character Limit**: Maximum 2,900 characters (LinkedIn's optimal engagement range)\n- **Optimal Length**: 1,500-2,500 characters for maximum reach\n- **Style**: Professional yet conversational, B2B/professional audience\n- **Tone**: Thought-leadership focused, authentic, valuable insights\n- **Structure**: Hook + context + key insights + call-to-action\n- **Format**: Pure text. Linkedin doesn't have format options\n\n## Content Guidelines\n\n### Required Elements\n1. **Compelling Hook** (first line): Start with a question, bold statement, or intriguing fact that stops the scroll\n2. **Context**: 1-2 sentences establishing relevance to professional audience\n3. **Key Insights**: 3-5 main takeaways or important information from the article\n4. **Professional Value**: Why this matters to your LinkedIn network\n5. **Engagement Driver**: End with a question, invitation for discussion, or call-to-action\n\n### Writing Best Practices\n- Lead with the most compelling angle or surprising insight\n- Use short paragraphs (2-3 lines max) for readability on mobile\n- Include numbers, percentages, statistics when available\n- Use line breaks strategically to improve scannability\n- Active voice and strong action verbs\n- Professional but personable tone - avoid corporate jargon\n- Share learnings, not just information\n- Create discussion opportunities (avoid statements that end conversations)\n\n### Formatting for LinkedIn\n- Use line breaks to separate ideas (improves readability)\n- Consider using relevant emojis sparingly (1-3 max) for visual interest\n- Bold key phrases or statistics for emphasis\n- Structure: Opening question/statement → Insights → Discussion prompt\n\n### Quality Checks\n- Verify character count (aim for 1,500-2,500 range)\n- Ensure hook grabs attention within first 10 words\n- Confirm all critical information from article is included\n- Check that tone is professional but authentic\n- Verify there's a clear reason for your network to engage\n- Ensure it invites discussion/comments\n\n### Restrictions\n- Don't add hashtags (user will add if needed)\n- Don't add links (user will add if needed)\n- Don't use excessive emojis or formatting\n- Avoid clickbait or misleading language\n- User instructions take precedence over system instructions\n\n## Example Structure\n\"[Opening hook/question]\n\n[Context establishing why this matters]\n\n[Key insight #1]\n\n[Key insight #2]\n\n[Key insight #3]\n\n[Discussion prompt or call-to-action]\"\n\n## Important Notes\n- LinkedIn rewards posts that generate comments, reactions, and shares\n- Posts that ask questions or invite perspective typically perform better\n- Personal stories or lessons learned resonate more than news regurgitation\n- Aim to add value to your professional network's day`;\n\nconst output = [];\n// Iterate and assign index\nfor (const item of $input.all()) {\n   const userPrompt = {\n  inputs: {\n    title: item.json.title,\n    paragraphs: item.json.paragraphs,\n    metadata: {\n      date: $now ,\n      source: \"First AI Movers\",\n    },\n    restrictions: {\n      output: \"output length MUST BE LESS THAN 2900 characters\",\n    },\n    extra: [\n      \"We are aiming for a catchy post, so you should try to use emojis and catchy wording.\",\n      \"Be concise and use short wording\",\n    ],\n  },\n};\n  const userPromptString = JSON.stringify(userPrompt, null, 2);\n  output.push({\n    json: {\n      title: item.json.title,\n      link: item.json.link,\n      imageUrl: item.json.enclosure.url,\n      paragraphs: item.json.paragraphs,\n      sysPrompt: sysPrompt,\n      userPrompt: userPromptString,\n      branch: \"linkedin\",\n      limit: 3000\n    }\n  });\n}\n\nreturn output;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2096,
+        -96
+      ],
+      "id": "7583686d-507b-49b6-b52b-f2b4e7b0f05b",
+      "name": "Add Linkedin Variables"
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "message",
+        "guildId": {
+          "__rl": true,
+          "value": "975057983782416464",
+          "mode": "id"
+        },
+        "channelId": {
+          "__rl": true,
+          "value": "1434621031619891220",
+          "mode": "list",
+          "cachedResultName": "n8n",
+          "cachedResultUrl": "https://discord.com/channels/975057983782416464/1434621031619891220"
+        },
+        "content": "=====================================================================",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.discord",
+      "typeVersion": 2,
+      "position": [
+        -2096,
+        -1104
+      ],
+      "id": "909e1082-73eb-403b-9131-cf8c969cd577",
+      "name": "Send a message",
+      "webhookId": "2594b51d-4ed3-4d56-b729-79eae1bbdc5b",
+      "executeOnce": true,
+      "credentials": {
+        "discordOAuth2Api": {
+          "id": "RkR96AKl5gmygy6B",
+          "name": "Discord account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "message",
+        "guildId": {
+          "__rl": true,
+          "value": "975057983782416464",
+          "mode": "id"
+        },
+        "channelId": {
+          "__rl": true,
+          "value": "1434621031619891220",
+          "mode": "list",
+          "cachedResultName": "n8n",
+          "cachedResultUrl": "https://discord.com/channels/975057983782416464/1434621031619891220"
+        },
+        "content": "=====================================================================",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.discord",
+      "typeVersion": 2,
+      "position": [
+        -2096,
+        96
+      ],
+      "id": "d4fdf7a3-e9a2-4378-b62d-50528d9fdd37",
+      "name": "Send a message1",
+      "webhookId": "2594b51d-4ed3-4d56-b729-79eae1bbdc5b",
+      "executeOnce": true,
+      "credentials": {
+        "discordOAuth2Api": {
+          "id": "RkR96AKl5gmygy6B",
+          "name": "Discord account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "9WUvqETxyFrEav7H",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/9WUvqETxyFrEav7H",
+          "cachedResultName": "Post creation flow"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "mode": "each",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        -1872,
+        -176
+      ],
+      "name": "Create Linkedin Post",
+      "id": "613f6601-046b-48ab-80d8-dd58601319d3"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "RSS Feed Trigger": {
+      "main": [
+        [
+          {
+            "node": "HTML",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTML": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Add Facebook Variables",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Add Bluesky Variables",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Add Linkedin Variables",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send a message1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Facebook Post": {
+      "main": [
+        [
+          {
+            "node": "Send message and wait for response",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Bluesky Post": {
+      "main": [
+        [
+          {
+            "node": "Send message and wait for response1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add Facebook Variables": {
+      "main": [
+        [
+          {
+            "node": "Create Facebook Post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add Bluesky Variables": {
+      "main": [
+        [
+          {
+            "node": "Create Bluesky Post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send message and wait for response": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Send message and wait for response1": {
+      "main": [
+        [
+          {
+            "node": "Merge2",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Post to Facebook": {
+      "main": [
+        []
+      ]
+    },
+    "Merge1": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Post to Facebook",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Add Facebook Variables",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge2": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "Post to Bluesky",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Add Bluesky Variables",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send message and wait for response2": {
+      "main": [
+        [
+          {
+            "node": "Merge3",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge3": {
+      "main": [
+        [
+          {
+            "node": "If2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If2": {
+      "main": [
+        [
+          {
+            "node": "Post to Linkedin",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Add Linkedin Variables",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add Linkedin Variables": {
+      "main": [
+        [
+          {
+            "node": "Create Linkedin Post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Linkedin Post": {
+      "main": [
+        [
+          {
+            "node": "Send message and wait for response2",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "callerPolicy": "workflowsFromSameOwner",
+    "executionOrder": "v1"
+  },
+  "versionId": "7a1d7106-430c-4a38-93f9-5a5f66e59c96",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "420fca2d7bc467baee3a06a86e7751ed6719fffd14e9933f13f800752c4a9fdb"
+  },
+  "id": "E5LNKyY3Odkk92b1",
+  "tags": []
+}

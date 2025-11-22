@@ -1,0 +1,339 @@
+{
+  "name": "Facebook branch",
+  "nodes": [
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v23.0/{{ $json.id }}/feed",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpBearerAuth",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "message",
+              "value": "={{ $json.facebook }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        112,
+        -736
+      ],
+      "id": "8d2c6509-436b-4c7c-95a6-24dda36cd8e0",
+      "name": "Post Creation FB",
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "7Qe3AmMzc27PIdDk",
+          "name": "Facebook page token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://graph.facebook.com/v23.0/me",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpBearerAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -784,
+        -816
+      ],
+      "id": "627727b3-5bad-4e3b-9d25-8d0293bc1192",
+      "name": "Get Facebook Page ID",
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "7Qe3AmMzc27PIdDk",
+          "name": "Facebook page token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "77a51361-43bd-4508-98ce-a68bcedd57fa",
+              "leftValue": "={{ $json.imageUrl }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -112,
+        -880
+      ],
+      "id": "872e2cfb-e288-4ba8-91c1-de9a86cab5ea",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {
+          "includeUnpaired": true
+        }
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -560,
+        -880
+      ],
+      "id": "2f3d095f-99a1-4261-9073-2458bc522562",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {
+          "clashHandling": {
+            "values": {
+              "resolveClash": "addSuffix"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        336,
+        -960
+      ],
+      "id": "66fa6a75-5fe4-491c-887c-51eaa51623ed",
+      "name": "Merge1"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v23.0/{{ $json.id }}/feed",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpBearerAuth",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "message",
+              "value": "={{ $json.facebook }}"
+            },
+            {
+              "name": "attached_media",
+              "value": "=[\n{\"media_fbid\":\"{{ $json.id_1 }}\"}\n]"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        560,
+        -960
+      ],
+      "id": "364b8840-76f7-4626-b6fc-8d4ae4ed8f97",
+      "name": "Post Creation FB1",
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "7Qe3AmMzc27PIdDk",
+          "name": "Facebook page token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v23.0/{{ $json.id }}/photos",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpBearerAuth",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "url",
+              "value": "={{ $json.imageUrl }}"
+            },
+            {
+              "name": "published",
+              "value": "false"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        112,
+        -1024
+      ],
+      "id": "7dbc0680-18e2-4186-99d9-7ddb7200acb4",
+      "name": "Image upload to FB",
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "7Qe3AmMzc27PIdDk",
+          "name": "Facebook page token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "a83e36b8-bcc6-430a-8032-ca11ade501e6",
+      "typeVersion": 1.1,
+      "name": "Start",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        -1008,
+        -880
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "let outputs= [];\n\nfor (const item of $input.all()) {\n  let post = item.json.output.content\n  post = post.replace(/\\\\/g, \"\\\\\\\\\");\n  post = post.replace(/\"/g, '\\\\\"');\n\n  let title = item.json.title;\n  title = title.replace(/\\\\/g, \"\\\\\\\\\");\n  title = title.replace(/\"/g, '\\\\\"');\n  item.json.title = title;\n  \n  item.json.facebook = post;\n  \n  outputs.push(item);\n}\nreturn outputs;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -336,
+        -880
+      ],
+      "id": "23eb1b71-b399-404a-abec-313dbe1e5bc8",
+      "name": "Code"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Image upload to FB": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Facebook Page ID": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge1": {
+      "main": [
+        [
+          {
+            "node": "Post Creation FB1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Image upload to FB",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 1
+          }
+        ],
+        [
+          {
+            "node": "Post Creation FB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "Get Facebook Page ID",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "feaf0894-fe0d-48c3-910d-b65fc0d5f856",
+  "meta": {
+    "instanceId": "420fca2d7bc467baee3a06a86e7751ed6719fffd14e9933f13f800752c4a9fdb"
+  },
+  "id": "rYRy7pbxfnStYz7H",
+  "tags": []
+}

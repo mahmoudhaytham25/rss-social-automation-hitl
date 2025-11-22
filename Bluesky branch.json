@@ -1,0 +1,420 @@
+{
+  "name": "Bluesky branch",
+  "nodes": [
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://bsky.social/xrpc/com.atproto.repo.createRecord",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $json.token }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"repo\": \"mhaytham.bsky.social\",\n  \"collection\": \"app.bsky.feed.post\",\n  \"record\": {\n    \"text\": \"{{ $json.post }}\",\n    \"createdAt\": \"{{ $now.toISO() }}\",\n    \"facets\": {{ JSON.stringify($json.facets) }}\n  }\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        448,
+        -224
+      ],
+      "id": "07732177-a5a8-459e-aa9b-7173f47d48be",
+      "name": "Post Creation w/ Clickable Link, Hashtag, Embedded Image1"
+    },
+    {
+      "parameters": {
+        "jsCode": "function utf8Length(str) {\n  let len = 0;\n  for (let i = 0; i < str.length; i++) {\n    const code = str.charCodeAt(i);\n    if (code < 0x80) {\n      len += 1;\n    } else if (code < 0x800) {\n      len += 2;\n    } else if (code >= 0xD800 && code <= 0xDBFF) {\n      // High surrogate - this is part of a 4-byte character\n      len += 4;\n      i++; // Skip the next low surrogate\n    } else if (code < 0x10000) {\n      len += 3;\n    } else {\n      len += 4;\n    }\n  }\n  return len;\n}\n\nfunction getUtf8ByteIndex(str, charIndex) {\n  return utf8Length(str.slice(0, charIndex));\n}\n\nconst results = [];\n\nfor (const item of $input.all()) {\n  let post = item.json.output.content;\n  const facets = [];\n  \n  // Hashtags\n  const hashtagRegex = /#\\w+/g;\n  let match;\n  while ((match = hashtagRegex.exec(post)) !== null) {\n    const tagText = match[0];\n    const start = match.index;\n    const end = start + tagText.length;\n  \n    const byteStart = getUtf8ByteIndex(post, start);\n    const byteEnd = getUtf8ByteIndex(post, end);\n  \n    facets.push({\n      index: { byteStart, byteEnd },\n      features: [\n        {\n          $type: \"app.bsky.richtext.facet#tag\",\n          tag: tagText.substring(1),\n        },\n      ],\n    });\n  }\n  \n  // Links\n  const linkRegex = /https?:\\/\\/\\S+/g;\n  while ((match = linkRegex.exec(post)) !== null) {\n    const url = match[0];\n    const start = match.index;\n    const end = start + url.length;\n  \n    const byteStart = getUtf8ByteIndex(post, start);\n    const byteEnd = getUtf8ByteIndex(post, end);\n  \n    facets.push({\n      index: { byteStart, byteEnd },\n      features: [\n        {\n          $type: \"app.bsky.richtext.facet#link\",\n          uri: url,\n        },\n      ],\n    });\n  }\n  post = post.replace(/\\\\/g, \"\\\\\\\\\");\n  post = post.replace(/\"/g, '\\\\\"');\n\n  let title = item.json.title;\n  title = title.replace(/\\\\/g, \"\\\\\\\\\");\n  title = title.replace(/\"/g, '\\\\\"');\n  \n  results.push({\n    json: {\n      token: item.json.token,\n      post: post,\n      facets: facets,\n      blob: item.json.blob,\n      link: item.json.link,\n      title: title\n    }\n  });\n}\n\nreturn results;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        -224
+      ],
+      "id": "c9a66e4c-367b-4f06-b071-adccf56df02b",
+      "name": "Dynamically Calculate Facets1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "faf257bc-160c-41c5-99c8-e91b87525faf",
+              "leftValue": "={{ $json.imageUrl }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        0,
+        -368
+      ],
+      "id": "db2903a8-a255-4961-8810-85d769b6e233",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {
+          "includeUnpaired": true
+        }
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -224,
+        -368
+      ],
+      "id": "f67bcf8b-1ec5-46ae-aee5-a5efb103e3dd",
+      "name": "Merge 1"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://bsky.social/xrpc/com.atproto.repo.createRecord",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $json.token }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"repo\": \"mhaytham.bsky.social\",\n  \"collection\": \"app.bsky.feed.post\",\n  \"record\": {\n    \"text\": \"{{ $json.post }}\",\n    \"createdAt\": \"{{ $now }}\",\n    \"facets\": {{ JSON.stringify($json.facets) }},\n\"embed\":{\n  \"$type\": \"app.bsky.embed.external\",\n  \"external\":{\n    \"uri\": \"{{ $json.link }}\",\n    \"title\": \"{{ $json.title }}\",\n    \"description\": \"\",\n    \"thumb\": {\"$type\": \"{{ $json.blob.$type }}\",\n            \"ref\": {\n              \"$link\": \"{{ $json.blob.ref.$link }}\"\n            },\n            \"mimeType\": \"{{ $json.blob.mimeType }}\",\n            \"size\": {{ $json.blob.size }}\n          }\n      }\n    }\n  }\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1120,
+        -448
+      ],
+      "id": "1997b7a5-3596-4d3d-88c7-81b03968a121",
+      "name": "Post Creation w/ Clickable Link, Hashtag, Embedded Image"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        672,
+        -448
+      ],
+      "id": "dcabef85-3155-4a99-b63e-bb9a48cf21e7",
+      "name": "Merge 2"
+    },
+    {
+      "parameters": {
+        "jsCode": "function utf8Length(str) {\n  let len = 0;\n  for (let i = 0; i < str.length; i++) {\n    const code = str.charCodeAt(i);\n    if (code < 0x80) {\n      len += 1;\n    } else if (code < 0x800) {\n      len += 2;\n    } else if (code >= 0xD800 && code <= 0xDBFF) {\n      // High surrogate - this is part of a 4-byte character\n      len += 4;\n      i++; // Skip the next low surrogate\n    } else if (code < 0x10000) {\n      len += 3;\n    } else {\n      len += 4;\n    }\n  }\n  return len;\n}\n\nfunction getUtf8ByteIndex(str, charIndex) {\n  return utf8Length(str.slice(0, charIndex));\n}\n\nconst results = [];\n\nfor (const item of $input.all()) {\n  let post = item.json.output.content;\n  const facets = [];\n  \n  // Hashtags\n  const hashtagRegex = /#\\w+/g;\n  let match;\n  while ((match = hashtagRegex.exec(post)) !== null) {\n    const tagText = match[0];\n    const start = match.index;\n    const end = start + tagText.length;\n  \n    const byteStart = getUtf8ByteIndex(post, start);\n    const byteEnd = getUtf8ByteIndex(post, end);\n  \n    facets.push({\n      index: { byteStart, byteEnd },\n      features: [\n        {\n          $type: \"app.bsky.richtext.facet#tag\",\n          tag: tagText.substring(1),\n        },\n      ],\n    });\n  }\n  \n  // Links\n  const linkRegex = /https?:\\/\\/\\S+/g;\n  while ((match = linkRegex.exec(post)) !== null) {\n    const url = match[0];\n    const start = match.index;\n    const end = start + url.length;\n  \n    const byteStart = getUtf8ByteIndex(post, start);\n    const byteEnd = getUtf8ByteIndex(post, end);\n  \n    facets.push({\n      index: { byteStart, byteEnd },\n      features: [\n        {\n          $type: \"app.bsky.richtext.facet#link\",\n          uri: url,\n        },\n      ],\n    });\n  }\n  post = post.replace(/\\\\/g, \"\\\\\\\\\");\n  post = post.replace(/\"/g, '\\\\\"');\n\n  let title = item.json.title;\n  title = title.replace(/\\\\/g, \"\\\\\\\\\");\n  title = title.replace(/\"/g, '\\\\\"');\n  \n  results.push({\n    json: {\n      token: item.json.token,\n      post: post,\n      facets: facets,\n      blob: item.json.blob,\n      link: item.json.link,\n      title: title\n    }\n  });\n}\n\nreturn results;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        896,
+        -448
+      ],
+      "id": "cec452bc-46af-41c6-80fa-1fa184185571",
+      "name": "Dynamically Calculate Facets"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "53b0eeb9-525d-4f36-86c2-6d0ee021a694",
+              "name": "token",
+              "value": "={{ $json.accessJwt }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -448,
+        -448
+      ],
+      "id": "a3c45f8e-aece-49bd-a6f1-7038788e04e3",
+      "name": "Extract JWT token"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://bsky.social/xrpc/com.atproto.server.createSession",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpCustomAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -672,
+        -448
+      ],
+      "id": "3d7de83f-8dfc-4032-b2ee-dd2d1d8648a7",
+      "name": "Open BlueSky Session",
+      "alwaysOutputData": false,
+      "credentials": {
+        "httpCustomAuth": {
+          "id": "eCn6EtzUXGs1qFvr",
+          "name": "bskyauth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.imageUrl }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        224,
+        -512
+      ],
+      "id": "642f798f-8a12-42ce-8e18-2dc0264a33fa",
+      "name": "Download Image from RSS",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://bsky.social/xrpc/com.atproto.repo.uploadBlob",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $json.token }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "image/png"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "binaryData",
+        "inputDataFieldName": "=data",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        448,
+        -512
+      ],
+      "id": "6ffb845f-85af-4de6-af2a-fcd205fc3181",
+      "name": "Uploading Image to BlueSky Blob Storage"
+    },
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "11395ec8-b5f3-4333-baf4-59040535d8b9",
+      "typeVersion": 1.1,
+      "name": "Start",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        -896,
+        -368
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Extract JWT token": {
+      "main": [
+        [
+          {
+            "node": "Merge 1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Image from RSS": {
+      "main": [
+        [
+          {
+            "node": "Uploading Image to BlueSky Blob Storage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Open BlueSky Session": {
+      "main": [
+        [
+          {
+            "node": "Extract JWT token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Uploading Image to BlueSky Blob Storage": {
+      "main": [
+        [
+          {
+            "node": "Merge 2",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge 1": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge 2": {
+      "main": [
+        [
+          {
+            "node": "Dynamically Calculate Facets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Dynamically Calculate Facets": {
+      "main": [
+        [
+          {
+            "node": "Post Creation w/ Clickable Link, Hashtag, Embedded Image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "Merge 2",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Download Image from RSS",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Dynamically Calculate Facets1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Dynamically Calculate Facets1": {
+      "main": [
+        [
+          {
+            "node": "Post Creation w/ Clickable Link, Hashtag, Embedded Image1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "Open BlueSky Session",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge 1",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "cc9d757b-0f45-4de9-8c3b-625c0e87f637",
+  "meta": {
+    "instanceId": "420fca2d7bc467baee3a06a86e7751ed6719fffd14e9933f13f800752c4a9fdb"
+  },
+  "id": "zvxqmMaPcqiBRWOC",
+  "tags": []
+}

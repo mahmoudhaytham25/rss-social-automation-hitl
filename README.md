@@ -50,7 +50,7 @@ RSS Feed -> Content extraction -> Platform-specific branching -> LLM post genera
 ## Result
 The automated workflow functions correctly:
 
-- Monitors the RSS feed for new items with hourly polling.
+- Monitors the RSS feed for new items with 1-minute polling (configurable via the RSS Feed Trigger node in `main.json`).
 - Transforms RSS content using AI to create platform-optimized versions.
 - Posts to all three platforms simultaneously with:
     - Bluesky: Clickable links using facets, hashtags, and embedded external content.
@@ -86,6 +86,11 @@ All n8n workflow exports live in [`workflows/`](workflows/):
 ## Extras
 
 - [Exposing n8n approvals to other devices with ngrok](docs/ngrok-approval-setup.md) — needed if approving posts from your phone while self-hosting n8n locally.
+
+## Notes
+
+- **Audit log path is environment-specific:** `post-creation-flow.json` reads and writes the Excel audit log at `/n8n/data/FirstAIMoversP3.xlsx` (the "Read/Write Files from Disk" nodes). Update this path to a location that exists in your n8n instance. If the file is missing, the read node is configured to skip audit logging (`onError: continueErrorOutput`) rather than fail the run.
+- **Regeneration cap:** if generated content exceeds the platform character limit, the post-creation sub-workflow retries the LLM at most 3 times (`attempts` counter incremented in "Code2", checked in "If2") before returning the last generated output.
 
 ---
 

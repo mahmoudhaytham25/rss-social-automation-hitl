@@ -22,6 +22,8 @@ You'll see output similar to this:
 Forwarding                    https://cec1e116840e.ngrok-free.app -> http://localhost:5678
 ```
 
+![ngrok terminal showing the forwarding URL](images/ngrok.jpg)
+
 Copy the forwarding URL (the `https://...` part). Keep this terminal window open—closing it will stop your tunnel.
 
 **Note:** Free ngrok URLs are temporary and change each time you restart. If you're using this for production, consider a paid ngrok account for a static URL.

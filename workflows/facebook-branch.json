@@ -131,7 +131,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "=https://graph.facebook.com/v23.0/{{ $json.id }}/feed",
+        "url": "=https://graph.facebook.com/v23.0/{{ $json.id_2 }}/feed",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "httpBearerAuth",
         "sendBody": true,
@@ -140,7 +140,7 @@
           "parameters": [
             {
               "name": "message",
-              "value": "={{ $json.facebook }}"
+              "value": "={{ $json.facebook_2 }}"
             },
             {
               "name": "attached_media",
@@ -217,7 +217,7 @@
     },
     {
       "parameters": {
-        "jsCode": "let outputs= [];\n\nfor (const item of $input.all()) {\n  let post = item.json.output.content\n  post = post.replace(/\\\\/g, \"\\\\\\\\\");\n  post = post.replace(/\"/g, '\\\\\"');\n\n  let title = item.json.title;\n  title = title.replace(/\\\\/g, \"\\\\\\\\\");\n  title = title.replace(/\"/g, '\\\\\"');\n  item.json.title = title;\n  \n  item.json.facebook = post;\n  \n  outputs.push(item);\n}\nreturn outputs;"
+        "jsCode": "let outputs= [];\n\nfor (const item of $input.all()) {\n  // No JSON escaping needed: the Facebook post nodes send this value as\n  // multipart-form-data, so escape sequences would appear literally in posts.\n  item.json.facebook = item.json.output.content;\n\n  outputs.push(item);\n}\nreturn outputs;"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,

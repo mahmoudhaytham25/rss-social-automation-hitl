@@ -71,7 +71,7 @@
     },
     {
       "parameters": {
-        "jsCode": "let outputs= [];\n\nfor (const item of $input.all()) {\n  let post = item.json.output.content\n  post = post.replace(/\\\\/g, \"\\\\\\\\\");\n  post = post.replace(/\"/g, '\\\\\"');\n\n  let title = item.json.title;\n  title = title.replace(/\\\\/g, \"\\\\\\\\\");\n  title = title.replace(/\"/g, '\\\\\"');\n  item.json.title = title;\n  \n  item.json.facebook = post;\n  \n  outputs.push(item);\n}\nreturn outputs;"
+        "jsCode": "// Pass-through: LinkedIn nodes read $json.output.content directly.\n// (Removed dead code that escaped the text and wrote it to an unused\n// 'facebook' field copied from the Facebook branch.)\nreturn $input.all();"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,

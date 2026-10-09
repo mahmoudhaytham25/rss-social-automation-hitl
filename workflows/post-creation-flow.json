@@ -15,7 +15,8 @@
         -832
       ],
       "id": "1b2fcb03-f356-47e4-9cdb-11b754fae12d",
-      "name": "Read/Write Files from Disk"
+      "name": "Read/Write Files from Disk",
+      "onError": "continueErrorOutput"
     },
     {
       "parameters": {
@@ -162,9 +163,19 @@
                 "operation": "true",
                 "singleValue": true
               }
+            },
+            {
+              "id": "3f9c8d2e-1a4b-4c5d-9e6f-2b7a8c9d0e1f",
+              "leftValue": "={{ $json.attempts || 0 }}",
+              "rightValue": 3,
+              "operator": {
+                "type": "number",
+                "operation": "gte",
+                "singleValue": true
+              }
             }
           ],
-          "combinator": "and"
+          "combinator": "or"
         },
         "options": {}
       },
@@ -251,7 +262,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const output = [];\n// Iterate and assign index\nfor (const item of $input.all()) {\n  output.push({\n    json: {\n      index: item.json.index,\n      title: item.json.title,\n      link: item.json.link,\n      imageUrl: item.json.imageUrl || null,\n      paragraphs: item.json.paragraphs || null,\n      sysPrompt: item.json.sysPrompt,\n      userPrompt: item.json.userPrompt,\n      branch: item.json.branch,\n      limit: item.json.limit\n    }\n  });\n}\n\nreturn output;\n"
+        "jsCode": "const output = [];\n// Iterate and assign index\nfor (const item of $input.all()) {\n  output.push({\n    json: {\n      index: item.json.index,\n      title: item.json.title,\n      link: item.json.link,\n      imageUrl: item.json.imageUrl || null,\n      paragraphs: item.json.paragraphs || null,\n      sysPrompt: item.json.sysPrompt,\n      userPrompt: item.json.userPrompt,\n      branch: item.json.branch,\n      limit: item.json.limit,\n      attempts: (item.json.attempts || 0) + 1\n    }\n  });\n}\n\nreturn output;\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -541,17 +552,6 @@
       ]
     },
     "Output data": {
-      "main": [
-        [
-          {
-            "node": "Final",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "No Operation, do nothing": {
       "main": [
         [
           {

@@ -1,5 +1,7 @@
 # FirstAIMovers: RSS to Multi-Social with Human-in-the-Loop Approval
 
+[![CI](https://github.com/mahmoudhaytham25/rss-social-automation-hitl/actions/workflows/ci.yml/badge.svg)](https://github.com/mahmoudhaytham25/rss-social-automation-hitl/actions/workflows/ci.yml)
+
 ## Situation
 First AI Movers aims to automate the process of distributing human-approved RSS feed updates to multiple social media platforms (Bluesky, Facebook, and LinkedIn) with AI-powered content optimization. Each platform requires different formatting, character limits, and specific features like Bluesky's facets for clickable links. This project leverages n8n to create a modular workflow that transforms RSS content using Google Gemini and posts platform-optimized versions.
 

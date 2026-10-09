@@ -7,10 +7,10 @@ First AI Movers aims to automate the process of distributing human-approved RSS 
 
 ## Task
 The goal is to build an automated workflow that does the following in order:
-1. Monitor an RSS field for new items
+1. Monitor an RSS feed for new items
 2. Use AI/LLM to transform the content of the new item into platform-specific posts
 3. Ask for human approval on each platform's post
-4. If approved, post to the content to the platform. Otherwise, re-generate the post again and ask for approval
+4. If approved, post the content to the platform. Otherwise, re-generate the post again and ask for approval
 5. Modular design must be adopted for ease of adding new platforms later on 
 
 ---
@@ -58,6 +58,34 @@ The automated workflow functions correctly:
     - LinkedIn: Posts with uploaded images and much larger content that caters to LinkedIn audience (2000+ characters).
 - Ensures modular architecture for easy addition of future platforms ( Twitter, Mastodon, etc.).
 - Maintains consistent branding with #FirstAIMovers hashtag across platforms.
+
+---
+
+## Workflow Files
+
+All n8n workflow exports live in [`workflows/`](workflows/):
+
+| File | Purpose |
+|------|---------|
+| `main.json` | RSS trigger → content extraction → platform branching → Discord approval loop |
+| `post-creation-flow.json` | Shared sub-workflow: LLM post generation + audit logging |
+| `bluesky-branch.json` | Bluesky publishing (ATProto auth, facets, image blobs) |
+| `facebook-branch.json` | Facebook publishing (Graph API, image upload) |
+| `linkedin-branch.json` | LinkedIn publishing |
+
+## Screenshots
+
+| Main workflow | Post creation |
+|---|---|
+| ![Main workflow](screenshots/main.jpg) | ![Post creation flow](screenshots/post-creation.jpg) |
+
+| Bluesky | Facebook | LinkedIn |
+|---|---|---|
+| ![Bluesky branch](screenshots/bluesky-branch.jpg) | ![Facebook branch](screenshots/facebook-branch.jpg) | ![LinkedIn branch](screenshots/linkedin-branch.jpg) |
+
+## Extras
+
+- [Exposing n8n approvals to other devices with ngrok](docs/ngrok-approval-setup.md) — needed if approving posts from your phone while self-hosting n8n locally.
 
 ---
 

@@ -38,7 +38,7 @@ Copy the forwarding URL (the `https://...` part). Keep this terminal window open
    (Replace `cec1e116840e.ngrok-free.app` with your actual ngrok URL)
 5. Click **Save Changes**
 
-![](extra/redirects.jpg)
+![](images/redirects.jpg)
 
 ## Step 3: Set n8n Environment Variable
 

@@ -88,6 +88,7 @@ All n8n workflow exports live in [`workflows/`](workflows/):
 ## Extras
 
 - [Exposing n8n approvals to other devices with ngrok](docs/ngrok-approval-setup.md) — needed if approving posts from your phone while self-hosting n8n locally.
+- [`tests/`](tests/) — a pytest suite that validates the workflow exports (wiring, field references, secrets scan). More rigor than an n8n repo needs; see [tests/README.md](tests/README.md) for why it exists.
 
 ## Notes
 

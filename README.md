@@ -1,6 +1,15 @@
 # FirstAIMovers: RSS to Multi-Social with Human-in-the-Loop Approval
 
 [![CI](https://github.com/mahmoudhaytham25/rss-social-automation-hitl/actions/workflows/ci.yml/badge.svg)](https://github.com/mahmoudhaytham25/rss-social-automation-hitl/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+
+![n8n](https://img.shields.io/badge/n8n-workflows-ea4b71?logo=n8n&logoColor=white)
+![Gemini](https://img.shields.io/badge/llm-gemini-8e75c2?logo=googlegemini&logoColor=white)
+![Bluesky](https://img.shields.io/badge/bluesky-posts-0285ff?logo=bluesky&logoColor=white)
+![LinkedIn](https://img.shields.io/badge/linkedin-posts-0a66c2?logo=linkedin&logoColor=white)
+![Facebook](https://img.shields.io/badge/facebook-posts-1877f2?logo=facebook&logoColor=white)
+![Discord](https://img.shields.io/badge/discord-hitl%20approvals-5865f2?logo=discord&logoColor=white)
+![pytest](https://img.shields.io/badge/tests-pytest-0a9edc?logo=pytest&logoColor=white)
 
 ## Situation
 First AI Movers aims to automate the process of distributing human-approved RSS feed updates to multiple social media platforms (Bluesky, Facebook, and LinkedIn) with AI-powered content optimization. Each platform requires different formatting, character limits, and specific features like Bluesky's facets for clickable links. This project leverages n8n to create a modular workflow that transforms RSS content using Google Gemini and posts platform-optimized versions.

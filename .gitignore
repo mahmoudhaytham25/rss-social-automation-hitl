@@ -6,3 +6,6 @@
 # Python test artifacts
 __pycache__/
 *.pyc
+
+# Local interview prep notes — never commit
+INTERVIEW_CHEATSHEET.md

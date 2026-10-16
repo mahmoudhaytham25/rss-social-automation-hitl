@@ -101,8 +101,8 @@ The automated workflow functions correctly:
 - Posts to all three platforms simultaneously with:
     - Bluesky: Clickable links using facets, hashtags, and embedded external content.
     - Facebook: Native posts with uploaded images and longer descriptive content.
-    - LinkedIn: Posts with uploaded images and much larger content that caters to LinkedIn audience (2000+ characters).
-- Ensures modular architecture for easy addition of future platforms ( Twitter, Mastodon, etc.).
+    - LinkedIn: Posts with uploaded images and much larger content that caters to LinkedIn audience (up to ~2,900 characters).
+- Ensures modular architecture for easy addition of future platforms (Twitter, Mastodon, etc.).
 - Maintains consistent branding with #FirstAIMovers hashtag across platforms.
 
 ---

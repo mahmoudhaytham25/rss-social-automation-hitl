@@ -9,3 +9,4 @@ __pycache__/
 
 # Local interview prep notes — never commit
 INTERVIEW_CHEATSHEET.md
+.DS_Store

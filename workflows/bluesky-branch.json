@@ -203,6 +203,9 @@
       ],
       "id": "3d7de83f-8dfc-4032-b2ee-dd2d1d8648a7",
       "name": "Open BlueSky Session",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000,
       "alwaysOutputData": false,
       "credentials": {
         "httpCustomAuth": {
@@ -230,6 +233,9 @@
       ],
       "id": "642f798f-8a12-42ce-8e18-2dc0264a33fa",
       "name": "Download Image from RSS",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000,
       "alwaysOutputData": false
     },
     {
@@ -261,7 +267,10 @@
         -512
       ],
       "id": "6ffb845f-85af-4de6-af2a-fcd205fc3181",
-      "name": "Uploading Image to BlueSky Blob Storage"
+      "name": "Uploading Image to BlueSky Blob Storage",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000
     },
     {
       "parameters": {
@@ -409,11 +418,8 @@
   },
   "active": false,
   "settings": {
+    "errorWorkflow": "ErrH4ndl3rD15c0rd",
     "executionOrder": "v1"
-  },
-  "versionId": "cc9d757b-0f45-4de9-8c3b-625c0e87f637",
-  "meta": {
-    "instanceId": "420fca2d7bc467baee3a06a86e7751ed6719fffd14e9933f13f800752c4a9fdb"
   },
   "id": "zvxqmMaPcqiBRWOC",
   "tags": []

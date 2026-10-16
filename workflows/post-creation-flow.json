@@ -566,12 +566,8 @@
   "active": false,
   "settings": {
     "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": "ErrH4ndl3rD15c0rd",
     "executionOrder": "v1"
-  },
-  "versionId": "8db7335d-4a52-42b5-9448-b276dca64085",
-  "meta": {
-    "templateCredsSetupCompleted": true,
-    "instanceId": "420fca2d7bc467baee3a06a86e7751ed6719fffd14e9933f13f800752c4a9fdb"
   },
   "id": "9WUvqETxyFrEav7H",
   "tags": []

@@ -1,0 +1,72 @@
+{
+  "name": "Error handler",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        -380,
+        300
+      ],
+      "id": "d1a3f9b2-7e4c-4b9a-82f6-5a8d1c3f9e13",
+      "name": "Error Trigger"
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "message",
+        "guildId": {
+          "__rl": true,
+          "value": "975057983782416464",
+          "mode": "id"
+        },
+        "channelId": {
+          "__rl": true,
+          "value": "1434621031619891220",
+          "mode": "list",
+          "cachedResultName": "n8n",
+          "cachedResultUrl": "https://discord.com/channels/975057983782416464/1434621031619891220"
+        },
+        "content": "=🚨 Workflow *{{ $json.workflow.name }}* failed at node *{{ $json.execution.lastNodeExecuted }}*: {{ $json.execution.error.message }} (execution {{ $json.execution.id }})",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.discord",
+      "typeVersion": 2,
+      "position": [
+        -160,
+        300
+      ],
+      "id": "e2b4a1c3-8f5d-4c1b-93a7-6b9e2d4a1f14",
+      "name": "Notify Discord on failure",
+      "webhookId": "2594b51d-4ed3-4d56-b729-79eae1bbdc5b",
+      "executeOnce": true,
+      "credentials": {
+        "discordOAuth2Api": {
+          "id": "RkR96AKl5gmygy6B",
+          "name": "Discord account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Notify Discord on failure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "id": "ErrH4ndl3rD15c0rd",
+  "tags": []
+}

@@ -49,6 +49,9 @@
       ],
       "id": "627727b3-5bad-4e3b-9d25-8d0293bc1192",
       "name": "Get Facebook Page ID",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000,
       "credentials": {
         "httpBearerAuth": {
           "id": "7Qe3AmMzc27PIdDk",
@@ -195,6 +198,9 @@
       ],
       "id": "7dbc0680-18e2-4186-99d9-7ddb7200acb4",
       "name": "Image upload to FB",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000,
       "credentials": {
         "httpBearerAuth": {
           "id": "7Qe3AmMzc27PIdDk",
@@ -328,11 +334,8 @@
   },
   "active": false,
   "settings": {
+    "errorWorkflow": "ErrH4ndl3rD15c0rd",
     "executionOrder": "v1"
-  },
-  "versionId": "feaf0894-fe0d-48c3-910d-b65fc0d5f856",
-  "meta": {
-    "instanceId": "420fca2d7bc467baee3a06a86e7751ed6719fffd14e9933f13f800752c4a9fdb"
   },
   "id": "rYRy7pbxfnStYz7H",
   "tags": []

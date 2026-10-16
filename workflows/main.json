@@ -247,7 +247,15 @@
             "approvalType": "double"
           }
         },
-        "options": {}
+        "options": {
+          "limitWaitTime": {
+            "values": {
+              "limitType": "afterTimeInterval",
+              "resumeAmount": 24,
+              "resumeUnit": "hours"
+            }
+          }
+        }
       },
       "type": "n8n-nodes-base.discord",
       "typeVersion": 2,
@@ -288,7 +296,15 @@
             "approvalType": "double"
           }
         },
-        "options": {}
+        "options": {
+          "limitWaitTime": {
+            "values": {
+              "limitType": "afterTimeInterval",
+              "resumeAmount": 24,
+              "resumeUnit": "hours"
+            }
+          }
+        }
       },
       "type": "n8n-nodes-base.discord",
       "typeVersion": 2,
@@ -323,37 +339,145 @@
     },
     {
       "parameters": {
-        "conditions": {
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "strict",
-            "version": 2
-          },
-          "conditions": [
+        "jsCode": "// Classifies the Discord approval outcome for this platform.\n// A clicked button sets data.approved; a missing value means the wait\n// timed out, so we re-ask up to MAX_REASKS times then skip the platform.\nconst MAX_REASKS = 3;\nconst item = $json;\nconst approved = item.data ? item.data.approved : undefined;\nlet reasks = item.reasks ?? 0;\nlet decision;\nif (approved === true) decision = 'approved';\nelse if (approved === false) decision = 'declined';\nelse {\n  reasks += 1;\n  decision = reasks >= MAX_REASKS ? 'skip' : 'reask';\n}\nreturn { json: { ...item, decision, reasks } };",
+        "mode": "runOnceForEachItem"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1164,
+        -992
+      ],
+      "id": "a1f3e8c2-7b4d-4e9f-b2c6-5d8a1f3e9b04",
+      "name": "Classify FB approval"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
             {
-              "id": "63a78810-cedf-47af-98a3-3ced17b5b3fc",
-              "leftValue": "={{ $json.data.approved }}",
-              "rightValue": "",
-              "operator": {
-                "type": "boolean",
-                "operation": "true",
-                "singleValue": true
-              }
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "f3c5b2d4-9a6e-4d2c-84b8-7c1f3e5b2a15",
+                    "leftValue": "={{ $json.decision }}",
+                    "rightValue": "approved",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "approved"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "a4d6c3e5-1b7f-4e3d-95c9-8d2a4f6c3b16",
+                    "leftValue": "={{ $json.decision }}",
+                    "rightValue": "declined",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "declined"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "b5e7d4f6-2c8a-4f4e-a6d1-9e3b5a7d4c17",
+                    "leftValue": "={{ $json.decision }}",
+                    "rightValue": "reask",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "reask"
             }
-          ],
-          "combinator": "and"
+          ]
         },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "skip"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        -904,
+        -1088
+      ],
+      "id": "d4a6f3b5-1e7c-4b3a-95f9-8a2d4c6b3e07",
+      "name": "Route FB approval"
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "message",
+        "guildId": {
+          "__rl": true,
+          "value": "975057983782416464",
+          "mode": "id"
+        },
+        "channelId": {
+          "__rl": true,
+          "value": "1434621031619891220",
+          "mode": "list",
+          "cachedResultName": "n8n",
+          "cachedResultUrl": "https://discord.com/channels/975057983782416464/1434621031619891220"
+        },
+        "content": "=⏭️ Skipped the facebook post for \"{{ $json.title }}\" — no response after 3 approval requests.",
         "options": {}
       },
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2.2,
+      "type": "n8n-nodes-base.discord",
+      "typeVersion": 2,
       "position": [
-        -1200,
-        -912
+        -664,
+        -1088
       ],
-      "id": "9e941d92-33f5-4b1f-80ce-b3e0eee9c4b2",
-      "name": "If"
+      "id": "a7d9c6e8-4b1f-4e6d-98c3-2d5a7f9e6b10",
+      "name": "Notify FB skipped",
+      "webhookId": "2594b51d-4ed3-4d56-b729-79eae1bbdc5b",
+      "executeOnce": true,
+      "credentials": {
+        "discordOAuth2Api": {
+          "id": "RkR96AKl5gmygy6B",
+          "name": "Discord account"
+        }
+      }
     },
     {
       "parameters": {
@@ -372,37 +496,145 @@
     },
     {
       "parameters": {
-        "conditions": {
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "strict",
-            "version": 2
-          },
-          "conditions": [
+        "jsCode": "// Classifies the Discord approval outcome for this platform.\n// A clicked button sets data.approved; a missing value means the wait\n// timed out, so we re-ask up to MAX_REASKS times then skip the platform.\nconst MAX_REASKS = 3;\nconst item = $json;\nconst approved = item.data ? item.data.approved : undefined;\nlet reasks = item.reasks ?? 0;\nlet decision;\nif (approved === true) decision = 'approved';\nelse if (approved === false) decision = 'declined';\nelse {\n  reasks += 1;\n  decision = reasks >= MAX_REASKS ? 'skip' : 'reask';\n}\nreturn { json: { ...item, decision, reasks } };",
+        "mode": "runOnceForEachItem"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1164,
+        -576
+      ],
+      "id": "b2e4d1f3-8c5a-4f1e-c3d7-6e9b2a4f1c05",
+      "name": "Classify BSKY approval"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
             {
-              "id": "63a78810-cedf-47af-98a3-3ced17b5b3fc",
-              "leftValue": "={{ $json.data.approved }}",
-              "rightValue": "",
-              "operator": {
-                "type": "boolean",
-                "operation": "true",
-                "singleValue": true
-              }
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "c6f8e5a7-3d9b-4a5f-b7e2-1f4c6b8e5d18",
+                    "leftValue": "={{ $json.decision }}",
+                    "rightValue": "approved",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "approved"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "d7a9f6b8-4e1c-4b6a-98f3-2a5d7c9f6e19",
+                    "leftValue": "={{ $json.decision }}",
+                    "rightValue": "declined",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "declined"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "e8b1a7c9-5f2d-4c7b-a9a4-3b6e8d1a7f20",
+                    "leftValue": "={{ $json.decision }}",
+                    "rightValue": "reask",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "reask"
             }
-          ],
-          "combinator": "and"
+          ]
         },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "skip"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        -904,
+        -672
+      ],
+      "id": "e5b7a4c6-2f8d-4c4b-a6a1-9b3e5d7c4f08",
+      "name": "Route BSKY approval"
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "message",
+        "guildId": {
+          "__rl": true,
+          "value": "975057983782416464",
+          "mode": "id"
+        },
+        "channelId": {
+          "__rl": true,
+          "value": "1434621031619891220",
+          "mode": "list",
+          "cachedResultName": "n8n",
+          "cachedResultUrl": "https://discord.com/channels/975057983782416464/1434621031619891220"
+        },
+        "content": "=⏭️ Skipped the bluesky post for \"{{ $json.title }}\" — no response after 3 approval requests.",
         "options": {}
       },
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2.2,
+      "type": "n8n-nodes-base.discord",
+      "typeVersion": 2,
       "position": [
-        -1200,
-        -512
+        -664,
+        -672
       ],
-      "id": "c39bd823-3724-4027-8532-c23984afc4b0",
-      "name": "If1"
+      "id": "b8e1d7f9-5c2a-4f7e-a9d4-3e6b8a1f7c11",
+      "name": "Notify BSKY skipped",
+      "webhookId": "2594b51d-4ed3-4d56-b729-79eae1bbdc5b",
+      "executeOnce": true,
+      "credentials": {
+        "discordOAuth2Api": {
+          "id": "RkR96AKl5gmygy6B",
+          "name": "Discord account"
+        }
+      }
     },
     {
       "parameters": {
@@ -427,7 +659,15 @@
             "approvalType": "double"
           }
         },
-        "options": {}
+        "options": {
+          "limitWaitTime": {
+            "values": {
+              "limitType": "afterTimeInterval",
+              "resumeAmount": 24,
+              "resumeUnit": "hours"
+            }
+          }
+        }
       },
       "type": "n8n-nodes-base.discord",
       "typeVersion": 2,
@@ -462,37 +702,145 @@
     },
     {
       "parameters": {
-        "conditions": {
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "strict",
-            "version": 2
-          },
-          "conditions": [
+        "jsCode": "// Classifies the Discord approval outcome for this platform.\n// A clicked button sets data.approved; a missing value means the wait\n// timed out, so we re-ask up to MAX_REASKS times then skip the platform.\nconst MAX_REASKS = 3;\nconst item = $json;\nconst approved = item.data ? item.data.approved : undefined;\nlet reasks = item.reasks ?? 0;\nlet decision;\nif (approved === true) decision = 'approved';\nelse if (approved === false) decision = 'declined';\nelse {\n  reasks += 1;\n  decision = reasks >= MAX_REASKS ? 'skip' : 'reask';\n}\nreturn { json: { ...item, decision, reasks } };",
+        "mode": "runOnceForEachItem"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1164,
+        -176
+      ],
+      "id": "c3f5e2a4-9d6b-4a2f-d4e8-7f1c3b5a2d06",
+      "name": "Classify LI approval"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
             {
-              "id": "63a78810-cedf-47af-98a3-3ced17b5b3fc",
-              "leftValue": "={{ $json.data.approved }}",
-              "rightValue": "",
-              "operator": {
-                "type": "boolean",
-                "operation": "true",
-                "singleValue": true
-              }
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "f9c2b8d1-6a3e-4d8c-b1b5-4c7f9e2b8a21",
+                    "leftValue": "={{ $json.decision }}",
+                    "rightValue": "approved",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "approved"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "a1d3c9e2-7b4f-4e9d-92c6-5d8a1f3c9b22",
+                    "leftValue": "={{ $json.decision }}",
+                    "rightValue": "declined",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "declined"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "b2e4d1f3-8c5a-4f1e-a3d7-6e9b2a4d1c23",
+                    "leftValue": "={{ $json.decision }}",
+                    "rightValue": "reask",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "reask"
             }
-          ],
-          "combinator": "and"
+          ]
         },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "skip"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        -904,
+        -272
+      ],
+      "id": "f6c8b5d7-3a9e-4d5c-b7b2-1c4f6e8d5a09",
+      "name": "Route LI approval"
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "message",
+        "guildId": {
+          "__rl": true,
+          "value": "975057983782416464",
+          "mode": "id"
+        },
+        "channelId": {
+          "__rl": true,
+          "value": "1434621031619891220",
+          "mode": "list",
+          "cachedResultName": "n8n",
+          "cachedResultUrl": "https://discord.com/channels/975057983782416464/1434621031619891220"
+        },
+        "content": "=⏭️ Skipped the linkedin post for \"{{ $json.title }}\" — no response after 3 approval requests.",
         "options": {}
       },
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2.2,
+      "type": "n8n-nodes-base.discord",
+      "typeVersion": 2,
       "position": [
-        -1200,
-        -96
+        -664,
+        -272
       ],
-      "id": "76648084-ea06-49f4-ab0f-43e452fe6544",
-      "name": "If2"
+      "id": "c9f2e8a1-6d3b-4a8f-b1e5-4f7c9b2e8d12",
+      "name": "Notify LI skipped",
+      "webhookId": "2594b51d-4ed3-4d56-b729-79eae1bbdc5b",
+      "executeOnce": true,
+      "credentials": {
+        "discordOAuth2Api": {
+          "id": "RkR96AKl5gmygy6B",
+          "name": "Discord account"
+        }
+      }
     },
     {
       "parameters": {
@@ -783,14 +1131,25 @@
       "main": [
         [
           {
-            "node": "If",
+            "node": "Classify FB approval",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "If": {
+    "Classify FB approval": {
+      "main": [
+        [
+          {
+            "node": "Route FB approval",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route FB approval": {
       "main": [
         [
           {
@@ -805,21 +1164,51 @@
             "type": "main",
             "index": 0
           }
-        ]
-      ]
-    },
-    "Merge2": {
-      "main": [
+        ],
         [
           {
-            "node": "If1",
+            "node": "Send message and wait for response",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Notify FB skipped",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "If1": {
+    "Notify FB skipped": {
+      "main": [
+        []
+      ]
+    },
+    "Merge2": {
+      "main": [
+        [
+          {
+            "node": "Classify BSKY approval",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Classify BSKY approval": {
+      "main": [
+        [
+          {
+            "node": "Route BSKY approval",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route BSKY approval": {
       "main": [
         [
           {
@@ -834,7 +1223,26 @@
             "type": "main",
             "index": 0
           }
+        ],
+        [
+          {
+            "node": "Send message and wait for response1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Notify BSKY skipped",
+            "type": "main",
+            "index": 0
+          }
         ]
+      ]
+    },
+    "Notify BSKY skipped": {
+      "main": [
+        []
       ]
     },
     "Send message and wait for response2": {
@@ -852,14 +1260,25 @@
       "main": [
         [
           {
-            "node": "If2",
+            "node": "Classify LI approval",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "If2": {
+    "Classify LI approval": {
+      "main": [
+        [
+          {
+            "node": "Route LI approval",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route LI approval": {
       "main": [
         [
           {
@@ -874,7 +1293,26 @@
             "type": "main",
             "index": 0
           }
+        ],
+        [
+          {
+            "node": "Send message and wait for response2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Notify LI skipped",
+            "type": "main",
+            "index": 0
+          }
         ]
+      ]
+    },
+    "Notify LI skipped": {
+      "main": [
+        []
       ]
     },
     "Add Linkedin Variables": {
@@ -905,15 +1343,11 @@
       ]
     }
   },
-  "active": true,
+  "active": false,
   "settings": {
     "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": "ErrH4ndl3rD15c0rd",
     "executionOrder": "v1"
-  },
-  "versionId": "7a1d7106-430c-4a38-93f9-5a5f66e59c96",
-  "meta": {
-    "templateCredsSetupCompleted": true,
-    "instanceId": "420fca2d7bc467baee3a06a86e7751ed6719fffd14e9933f13f800752c4a9fdb"
   },
   "id": "E5LNKyY3Odkk92b1",
   "tags": []

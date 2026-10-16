@@ -101,6 +101,9 @@
       ],
       "id": "7df51c2f-0c8f-40ff-a0c7-877e08a1003c",
       "name": "Download Image from RSS",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000,
       "alwaysOutputData": false
     },
     {
@@ -219,11 +222,8 @@
   },
   "active": false,
   "settings": {
+    "errorWorkflow": "ErrH4ndl3rD15c0rd",
     "executionOrder": "v1"
-  },
-  "versionId": "8167f078-af8d-4fa8-a993-65cd80d4dddd",
-  "meta": {
-    "instanceId": "420fca2d7bc467baee3a06a86e7751ed6719fffd14e9933f13f800752c4a9fdb"
   },
   "id": "q2qKF9EkXT8XnINX",
   "tags": []

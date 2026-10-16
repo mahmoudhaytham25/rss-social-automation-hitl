@@ -83,66 +83,7 @@
     },
     {
       "parameters": {
-        "workflowId": {
-          "__rl": true,
-          "value": "9WUvqETxyFrEav7H",
-          "mode": "list",
-          "cachedResultUrl": "/workflow/9WUvqETxyFrEav7H",
-          "cachedResultName": "Post creation flow"
-        },
-        "workflowInputs": {
-          "mappingMode": "defineBelow",
-          "value": {},
-          "matchingColumns": [],
-          "schema": [],
-          "attemptToConvertTypes": false,
-          "convertFieldsToString": true
-        },
-        "mode": "each",
-        "options": {}
-      },
-      "type": "n8n-nodes-base.executeWorkflow",
-      "typeVersion": 1.2,
-      "position": [
-        -1872,
-        -992
-      ],
-      "name": "Create Facebook Post",
-      "id": "05941a61-9030-4f55-bbf5-448ce2c7b35a",
-      "alwaysOutputData": false
-    },
-    {
-      "parameters": {
-        "workflowId": {
-          "__rl": true,
-          "value": "9WUvqETxyFrEav7H",
-          "mode": "list",
-          "cachedResultUrl": "/workflow/9WUvqETxyFrEav7H",
-          "cachedResultName": "Post creation flow"
-        },
-        "workflowInputs": {
-          "mappingMode": "defineBelow",
-          "value": {},
-          "matchingColumns": [],
-          "schema": [],
-          "attemptToConvertTypes": false,
-          "convertFieldsToString": true
-        },
-        "mode": "each",
-        "options": {}
-      },
-      "type": "n8n-nodes-base.executeWorkflow",
-      "typeVersion": 1.2,
-      "position": [
-        -1872,
-        -576
-      ],
-      "name": "Create Bluesky Post",
-      "id": "c2479257-df09-40a2-91d1-a7e59cfb906e"
-    },
-    {
-      "parameters": {
-        "jsCode": "const sysPrompt = `You are a specialized social media content creator that transforms articles into engaging Facebook posts.\n\n## Core Function\nTransform given articles into Facebook-optimized posts that drive engagement and clicks while preserving key information.\n\n## Output Format\nALWAYS respond in JSON format:\n{\n  content: string\n}\n\n## Facebook Requirements\n- **Character Limit**: Maximum 500 characters (STRICT)\n- **Style**: More descriptive, broader audience appeal\n- **Tone**: Informative yet engaging\n- **Structure**: Compelling hook + detailed summary + call-to-action\n\n## Content Guidelines\n\n### Required Elements\n1. **Punchy Hook**: Start with attention-grabbing first sentence\n2. **Core Information**: Preserve the most important/newsworthy content\n3. **Call-to-Action**: End with engaging question or prompt\n\n### Writing Best Practices\n- Lead with the most compelling angle or surprising fact\n- Use active voice and strong verbs\n- Include numbers, percentages, or specific details when available\n- Create urgency or curiosity gaps\n- Avoid jargon - write for general audience\n- Ensure post works as standalone content (don't assume URL click)\n\n### Quality Checks\n- Count characters before finalizing (MUST be under 500)\n- Ensure hook works within first 1-2 sentences\n- Verify all key information is preserved\n- Check that tone matches platform audience\n\n### Restrictions\n- Don't add hashtags - those will be added by the user if needed\n- Don't add links - those will be added by the user if needed\n- User instructions take precedence over system instructions\n\n## Example Structure\n\"[Engaging hook] [Detailed summary with context] [Call-to-action or question]\"\n\n## Tools\nYou have access to a character counter tool which you can use to count the exact number of characters in your output.\nUse it to ensure you stay under the 500 character limit.`;\n\n\nconst output = [];\n// Iterate and assign index\nfor (const item of $input.all()) {\n  const userPrompt = {\n  inputs: {\n    title: item.json.title,\n    paragraphs: item.json.paragraphs,\n    metadata: {\n      date: $now ,\n      source: \"First AI Movers\",\n    },\n    restrictions: {\n      output: \"output length MUST BE LESS THAN 500 characters\",\n    },\n    extra: [\n      \"We are aiming for a catchy post, so you should try to use emojis and catchy wording.\",\n      \"Be concise and use short wording\",\n    ],\n  },\n};\n  const userPromptString = JSON.stringify(userPrompt, null, 2);\n\n  \n  output.push({\n    json: {\n      title: item.json.title,\n      link: item.json.link,\n      imageUrl: item.json.enclosure.url,\n      paragraphs: item.json.paragraphs,\n      sysPrompt: sysPrompt,\n      userPrompt: userPromptString,\n      branch: \"facebook\",\n      limit: 600\n    }\n  });\n}\n\nreturn output;\n"
+        "jsCode": "const sysPrompt = `You are a specialized social media content creator that transforms articles into engaging Facebook posts.\n\n## Core Function\nTransform given articles into Facebook-optimized posts that drive engagement and clicks while preserving key information.\n\n## Output Format\nALWAYS respond in JSON format:\n{\n  content: string\n}\n\n## Facebook Requirements\n- **Character Limit**: Maximum 500 characters (STRICT)\n- **Style**: More descriptive, broader audience appeal\n- **Tone**: Informative yet engaging\n- **Structure**: Compelling hook + detailed summary + call-to-action\n\n## Content Guidelines\n\n### Required Elements\n1. **Punchy Hook**: Start with attention-grabbing first sentence\n2. **Core Information**: Preserve the most important/newsworthy content\n3. **Call-to-Action**: End with engaging question or prompt\n\n### Writing Best Practices\n- Lead with the most compelling angle or surprising fact\n- Use active voice and strong verbs\n- Include numbers, percentages, or specific details when available\n- Create urgency or curiosity gaps\n- Avoid jargon - write for general audience\n- Ensure post works as standalone content (don't assume URL click)\n\n### Quality Checks\n- Count characters before finalizing (MUST be under 500)\n- Ensure hook works within first 1-2 sentences\n- Verify all key information is preserved\n- Check that tone matches platform audience\n\n### Restrictions\n- Don't add hashtags - those will be added by the user if needed\n- Don't add links - those will be added by the user if needed\n- User instructions take precedence over system instructions\n\n## Example Structure\n\"[Engaging hook] [Detailed summary with context] [Call-to-action or question]\"\n\n## Tools\nYou have access to a character counter tool which you can use to count the exact number of characters in your output.\nUse it to ensure you stay under the 500 character limit.`;\n\n\nconst output = [];\n// Iterate and assign index\nfor (const item of $input.all()) {\n  const userPrompt = {\n  inputs: {\n    title: item.json.title,\n    paragraphs: item.json.paragraphs,\n    metadata: {\n      date: $now ,\n      source: \"First AI Movers\",\n    },\n    restrictions: {\n      output: \"output length MUST BE LESS THAN 500 characters\",\n    },\n    extra: [\n      \"We are aiming for a catchy post, so you should try to use emojis and catchy wording.\",\n      \"Be concise and use short wording\",\n    ],\n  },\n};\n  const userPromptString = JSON.stringify(userPrompt, null, 2);\n\n  \n  output.push({\n    json: {\n      title: item.json.title,\n      link: item.json.link,\n      imageUrl: item.json.enclosure?.url,\n      paragraphs: item.json.paragraphs,\n      sysPrompt: sysPrompt,\n      userPrompt: userPromptString,\n      branch: \"facebook\",\n      limit: 600,\n      platformName: \"Facebook\",\n      publishWorkflowId: \"rYRy7pbxfnStYz7H\"\n    }\n  });\n}\n\nreturn output;\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -155,7 +96,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const sysPrompt = `You are a specialized social media content creator that transforms articles into engaging Bluesky posts.\n\n## Core Function\nTransform given articles into Bluesky-optimized posts that drive engagement and clicks while preserving key information.\n\n## Output Format\nALWAYS respond in JSON format:\n{\n  content: string\n}\n\n## Bluesky Requirements\n- **Character Limit**: Maximum 200 characters (STRICT)\n- **Style**: Conversational, direct, tech-savvy audience\n- **Tone**: Concise and punchy\n- **Structure**: Hook + key insight\n\n## Content Guidelines\n\n### Required Elements\n1. **Punchy Hook**: Start with attention-grabbing first sentence\n2. **Core Information**: Preserve the most important/newsworthy content\n\n### Writing Best Practices\n- Lead with the most compelling angle or surprising fact\n- Use active voice and strong verbs\n- Include numbers, percentages, or specific details when available\n- Create urgency or curiosity gaps\n- Technical jargon is acceptable for tech-savvy audience\n- Ensure post works as standalone content (don't assume URL click)\n\n### Quality Checks\n- Count characters before finalizing (MUST be under 200)\n- Ensure hook works within first 1-2 sentences\n- Verify all key information is preserved\n- Check that tone matches platform audience\n\n### Restrictions\n- Don't add hashtags - those will be added by the user if needed\n- Don't add links - those will be added by the user if needed\n- User instructions take precedence over system instructions\n\n## Example Structure\n\"[Punchy hook] [Key insight in 1-2 sentences]\"\n\n## Tools\nYou have access to a character counter tool which you can use to count the exact number of characters in your output.\nUse it to ensure you stay under the 200 character limit.`;\n\nconst output = [];\n// Iterate and assign index\nfor (const item of $input.all()) {\n   const userPrompt = {\n  inputs: {\n    title: item.json.title,\n    paragraphs: item.json.paragraphs,\n    metadata: {\n      date: $now ,\n      source: \"First AI Movers\",\n    },\n    restrictions: {\n      output: \"output length MUST BE LESS THAN 200 characters\",\n    },\n    extra: [\n      \"We are aiming for a catchy post, so you should try to use emojis and catchy wording.\",\n      \"Be concise and use short wording\",\n    ],\n  },\n};\n  const userPromptString = JSON.stringify(userPrompt, null, 2);\n  output.push({\n    json: {\n      title: item.json.title,\n      link: item.json.link,\n      imageUrl: item.json.enclosure.url,\n      paragraphs: item.json.paragraphs,\n      sysPrompt: sysPrompt,\n      userPrompt: userPromptString,\n      branch: \"bluesky\",\n      limit: 300\n    }\n  });\n}\n\nreturn output;\n"
+        "jsCode": "const sysPrompt = `You are a specialized social media content creator that transforms articles into engaging Bluesky posts.\n\n## Core Function\nTransform given articles into Bluesky-optimized posts that drive engagement and clicks while preserving key information.\n\n## Output Format\nALWAYS respond in JSON format:\n{\n  content: string\n}\n\n## Bluesky Requirements\n- **Character Limit**: Maximum 200 characters (STRICT)\n- **Style**: Conversational, direct, tech-savvy audience\n- **Tone**: Concise and punchy\n- **Structure**: Hook + key insight\n\n## Content Guidelines\n\n### Required Elements\n1. **Punchy Hook**: Start with attention-grabbing first sentence\n2. **Core Information**: Preserve the most important/newsworthy content\n\n### Writing Best Practices\n- Lead with the most compelling angle or surprising fact\n- Use active voice and strong verbs\n- Include numbers, percentages, or specific details when available\n- Create urgency or curiosity gaps\n- Technical jargon is acceptable for tech-savvy audience\n- Ensure post works as standalone content (don't assume URL click)\n\n### Quality Checks\n- Count characters before finalizing (MUST be under 200)\n- Ensure hook works within first 1-2 sentences\n- Verify all key information is preserved\n- Check that tone matches platform audience\n\n### Restrictions\n- Don't add hashtags - those will be added by the user if needed\n- Don't add links - those will be added by the user if needed\n- User instructions take precedence over system instructions\n\n## Example Structure\n\"[Punchy hook] [Key insight in 1-2 sentences]\"\n\n## Tools\nYou have access to a character counter tool which you can use to count the exact number of characters in your output.\nUse it to ensure you stay under the 200 character limit.`;\n\nconst output = [];\n// Iterate and assign index\nfor (const item of $input.all()) {\n   const userPrompt = {\n  inputs: {\n    title: item.json.title,\n    paragraphs: item.json.paragraphs,\n    metadata: {\n      date: $now ,\n      source: \"First AI Movers\",\n    },\n    restrictions: {\n      output: \"output length MUST BE LESS THAN 200 characters\",\n    },\n    extra: [\n      \"We are aiming for a catchy post, so you should try to use emojis and catchy wording.\",\n      \"Be concise and use short wording\",\n    ],\n  },\n};\n  const userPromptString = JSON.stringify(userPrompt, null, 2);\n  output.push({\n    json: {\n      title: item.json.title,\n      link: item.json.link,\n      imageUrl: item.json.enclosure?.url,\n      paragraphs: item.json.paragraphs,\n      sysPrompt: sysPrompt,\n      userPrompt: userPromptString,\n      branch: \"bluesky\",\n      limit: 300,\n      platformName: \"Bluesky\",\n      publishWorkflowId: \"zvxqmMaPcqiBRWOC\"\n    }\n  });\n}\n\nreturn output;\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -168,712 +109,7 @@
     },
     {
       "parameters": {
-        "workflowId": {
-          "__rl": true,
-          "value": "zvxqmMaPcqiBRWOC",
-          "mode": "list",
-          "cachedResultUrl": "/workflow/zvxqmMaPcqiBRWOC",
-          "cachedResultName": "Bluesky branch"
-        },
-        "workflowInputs": {
-          "mappingMode": "defineBelow",
-          "value": {},
-          "matchingColumns": [],
-          "schema": [],
-          "attemptToConvertTypes": false,
-          "convertFieldsToString": true
-        },
-        "mode": "each",
-        "options": {}
-      },
-      "type": "n8n-nodes-base.executeWorkflow",
-      "typeVersion": 1.2,
-      "position": [
-        -976,
-        -512
-      ],
-      "name": "Post to Bluesky",
-      "id": "5cc9bd4c-ddec-4bb2-845f-7ac68deb0ec7"
-    },
-    {
-      "parameters": {
-        "workflowId": {
-          "__rl": true,
-          "value": "rYRy7pbxfnStYz7H",
-          "mode": "list",
-          "cachedResultUrl": "/workflow/rYRy7pbxfnStYz7H",
-          "cachedResultName": "Facebook branch"
-        },
-        "workflowInputs": {
-          "mappingMode": "defineBelow",
-          "value": {},
-          "matchingColumns": [],
-          "schema": [],
-          "attemptToConvertTypes": false,
-          "convertFieldsToString": true
-        },
-        "mode": "each",
-        "options": {}
-      },
-      "type": "n8n-nodes-base.executeWorkflow",
-      "typeVersion": 1.2,
-      "position": [
-        -976,
-        -912
-      ],
-      "name": "Post to Facebook",
-      "id": "97a4b956-2037-48ae-a87d-25a2334d0c82"
-    },
-    {
-      "parameters": {
-        "authentication": "oAuth2",
-        "resource": "message",
-        "operation": "sendAndWait",
-        "guildId": {
-          "__rl": true,
-          "value": "975057983782416464",
-          "mode": "id"
-        },
-        "channelId": {
-          "__rl": true,
-          "value": "1434621031619891220",
-          "mode": "list",
-          "cachedResultName": "n8n",
-          "cachedResultUrl": "https://discord.com/channels/975057983782416464/1434621031619891220"
-        },
-        "message": "=For feed item with title:\n\n{{ $json.title }}\n\nThe following post was automatically created for distribution on facebook:\n\n{{ $json.output.content }}\n\nDo you approve posting it?",
-        "approvalOptions": {
-          "values": {
-            "approvalType": "double"
-          }
-        },
-        "options": {
-          "limitWaitTime": {
-            "values": {
-              "limitType": "afterTimeInterval",
-              "resumeAmount": 24,
-              "resumeUnit": "hours"
-            }
-          }
-        }
-      },
-      "type": "n8n-nodes-base.discord",
-      "typeVersion": 2,
-      "position": [
-        -1648,
-        -912
-      ],
-      "id": "9d016b89-cb3d-490a-a18a-b4743fde867a",
-      "name": "Send message and wait for response",
-      "webhookId": "2594b51d-4ed3-4d56-b729-79eae1bbdc5b",
-      "credentials": {
-        "discordOAuth2Api": {
-          "id": "RkR96AKl5gmygy6B",
-          "name": "Discord account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "authentication": "oAuth2",
-        "resource": "message",
-        "operation": "sendAndWait",
-        "guildId": {
-          "__rl": true,
-          "value": "975057983782416464",
-          "mode": "id"
-        },
-        "channelId": {
-          "__rl": true,
-          "value": "1434621031619891220",
-          "mode": "list",
-          "cachedResultName": "n8n",
-          "cachedResultUrl": "https://discord.com/channels/975057983782416464/1434621031619891220"
-        },
-        "message": "=For feed item with title:\n\n{{ $json.title }}\n\nThe following post was automatically created for distribution on bluesky:\n\n{{ $json.output.content }}\n\nDo you approve posting it?",
-        "approvalOptions": {
-          "values": {
-            "approvalType": "double"
-          }
-        },
-        "options": {
-          "limitWaitTime": {
-            "values": {
-              "limitType": "afterTimeInterval",
-              "resumeAmount": 24,
-              "resumeUnit": "hours"
-            }
-          }
-        }
-      },
-      "type": "n8n-nodes-base.discord",
-      "typeVersion": 2,
-      "position": [
-        -1648,
-        -512
-      ],
-      "id": "2bd189f3-1460-41d9-b1f3-05287d8e7677",
-      "name": "Send message and wait for response1",
-      "webhookId": "2594b51d-4ed3-4d56-b729-79eae1bbdc5b",
-      "credentials": {
-        "discordOAuth2Api": {
-          "id": "RkR96AKl5gmygy6B",
-          "name": "Discord account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "mode": "combine",
-        "combineBy": "combineByPosition",
-        "options": {}
-      },
-      "type": "n8n-nodes-base.merge",
-      "typeVersion": 3.2,
-      "position": [
-        -1424,
-        -992
-      ],
-      "id": "b8818889-bd09-4ac7-9f45-ca8430e41ac1",
-      "name": "Merge1"
-    },
-    {
-      "parameters": {
-        "jsCode": "// Classifies the Discord approval outcome for this platform.\n// A clicked button sets data.approved; a missing value means the wait\n// timed out, so we re-ask up to MAX_REASKS times then skip the platform.\nconst MAX_REASKS = 3;\nconst item = $json;\nconst approved = item.data ? item.data.approved : undefined;\nlet reasks = item.reasks ?? 0;\nlet decision;\nif (approved === true) decision = 'approved';\nelse if (approved === false) decision = 'declined';\nelse {\n  reasks += 1;\n  decision = reasks >= MAX_REASKS ? 'skip' : 'reask';\n}\nreturn { json: { ...item, decision, reasks } };",
-        "mode": "runOnceForEachItem"
-      },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        -1164,
-        -992
-      ],
-      "id": "a1f3e8c2-7b4d-4e9f-b2c6-5d8a1f3e9b04",
-      "name": "Classify FB approval"
-    },
-    {
-      "parameters": {
-        "rules": {
-          "values": [
-            {
-              "conditions": {
-                "options": {
-                  "caseSensitive": true,
-                  "leftValue": "",
-                  "typeValidation": "strict",
-                  "version": 2
-                },
-                "conditions": [
-                  {
-                    "id": "f3c5b2d4-9a6e-4d2c-84b8-7c1f3e5b2a15",
-                    "leftValue": "={{ $json.decision }}",
-                    "rightValue": "approved",
-                    "operator": {
-                      "type": "string",
-                      "operation": "equals"
-                    }
-                  }
-                ],
-                "combinator": "and"
-              },
-              "renameOutput": true,
-              "outputKey": "approved"
-            },
-            {
-              "conditions": {
-                "options": {
-                  "caseSensitive": true,
-                  "leftValue": "",
-                  "typeValidation": "strict",
-                  "version": 2
-                },
-                "conditions": [
-                  {
-                    "id": "a4d6c3e5-1b7f-4e3d-95c9-8d2a4f6c3b16",
-                    "leftValue": "={{ $json.decision }}",
-                    "rightValue": "declined",
-                    "operator": {
-                      "type": "string",
-                      "operation": "equals"
-                    }
-                  }
-                ],
-                "combinator": "and"
-              },
-              "renameOutput": true,
-              "outputKey": "declined"
-            },
-            {
-              "conditions": {
-                "options": {
-                  "caseSensitive": true,
-                  "leftValue": "",
-                  "typeValidation": "strict",
-                  "version": 2
-                },
-                "conditions": [
-                  {
-                    "id": "b5e7d4f6-2c8a-4f4e-a6d1-9e3b5a7d4c17",
-                    "leftValue": "={{ $json.decision }}",
-                    "rightValue": "reask",
-                    "operator": {
-                      "type": "string",
-                      "operation": "equals"
-                    }
-                  }
-                ],
-                "combinator": "and"
-              },
-              "renameOutput": true,
-              "outputKey": "reask"
-            }
-          ]
-        },
-        "options": {
-          "fallbackOutput": "extra",
-          "renameFallbackOutput": "skip"
-        }
-      },
-      "type": "n8n-nodes-base.switch",
-      "typeVersion": 3.2,
-      "position": [
-        -904,
-        -1088
-      ],
-      "id": "d4a6f3b5-1e7c-4b3a-95f9-8a2d4c6b3e07",
-      "name": "Route FB approval"
-    },
-    {
-      "parameters": {
-        "authentication": "oAuth2",
-        "resource": "message",
-        "guildId": {
-          "__rl": true,
-          "value": "975057983782416464",
-          "mode": "id"
-        },
-        "channelId": {
-          "__rl": true,
-          "value": "1434621031619891220",
-          "mode": "list",
-          "cachedResultName": "n8n",
-          "cachedResultUrl": "https://discord.com/channels/975057983782416464/1434621031619891220"
-        },
-        "content": "=⏭️ Skipped the facebook post for \"{{ $json.title }}\" — no response after 3 approval requests.",
-        "options": {}
-      },
-      "type": "n8n-nodes-base.discord",
-      "typeVersion": 2,
-      "position": [
-        -664,
-        -1088
-      ],
-      "id": "a7d9c6e8-4b1f-4e6d-98c3-2d5a7f9e6b10",
-      "name": "Notify FB skipped",
-      "webhookId": "2594b51d-4ed3-4d56-b729-79eae1bbdc5b",
-      "executeOnce": true,
-      "credentials": {
-        "discordOAuth2Api": {
-          "id": "RkR96AKl5gmygy6B",
-          "name": "Discord account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "mode": "combine",
-        "combineBy": "combineByPosition",
-        "options": {}
-      },
-      "type": "n8n-nodes-base.merge",
-      "typeVersion": 3.2,
-      "position": [
-        -1424,
-        -576
-      ],
-      "id": "6d4cee0f-1b1b-4daf-8165-69686050b50d",
-      "name": "Merge2"
-    },
-    {
-      "parameters": {
-        "jsCode": "// Classifies the Discord approval outcome for this platform.\n// A clicked button sets data.approved; a missing value means the wait\n// timed out, so we re-ask up to MAX_REASKS times then skip the platform.\nconst MAX_REASKS = 3;\nconst item = $json;\nconst approved = item.data ? item.data.approved : undefined;\nlet reasks = item.reasks ?? 0;\nlet decision;\nif (approved === true) decision = 'approved';\nelse if (approved === false) decision = 'declined';\nelse {\n  reasks += 1;\n  decision = reasks >= MAX_REASKS ? 'skip' : 'reask';\n}\nreturn { json: { ...item, decision, reasks } };",
-        "mode": "runOnceForEachItem"
-      },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        -1164,
-        -576
-      ],
-      "id": "b2e4d1f3-8c5a-4f1e-c3d7-6e9b2a4f1c05",
-      "name": "Classify BSKY approval"
-    },
-    {
-      "parameters": {
-        "rules": {
-          "values": [
-            {
-              "conditions": {
-                "options": {
-                  "caseSensitive": true,
-                  "leftValue": "",
-                  "typeValidation": "strict",
-                  "version": 2
-                },
-                "conditions": [
-                  {
-                    "id": "c6f8e5a7-3d9b-4a5f-b7e2-1f4c6b8e5d18",
-                    "leftValue": "={{ $json.decision }}",
-                    "rightValue": "approved",
-                    "operator": {
-                      "type": "string",
-                      "operation": "equals"
-                    }
-                  }
-                ],
-                "combinator": "and"
-              },
-              "renameOutput": true,
-              "outputKey": "approved"
-            },
-            {
-              "conditions": {
-                "options": {
-                  "caseSensitive": true,
-                  "leftValue": "",
-                  "typeValidation": "strict",
-                  "version": 2
-                },
-                "conditions": [
-                  {
-                    "id": "d7a9f6b8-4e1c-4b6a-98f3-2a5d7c9f6e19",
-                    "leftValue": "={{ $json.decision }}",
-                    "rightValue": "declined",
-                    "operator": {
-                      "type": "string",
-                      "operation": "equals"
-                    }
-                  }
-                ],
-                "combinator": "and"
-              },
-              "renameOutput": true,
-              "outputKey": "declined"
-            },
-            {
-              "conditions": {
-                "options": {
-                  "caseSensitive": true,
-                  "leftValue": "",
-                  "typeValidation": "strict",
-                  "version": 2
-                },
-                "conditions": [
-                  {
-                    "id": "e8b1a7c9-5f2d-4c7b-a9a4-3b6e8d1a7f20",
-                    "leftValue": "={{ $json.decision }}",
-                    "rightValue": "reask",
-                    "operator": {
-                      "type": "string",
-                      "operation": "equals"
-                    }
-                  }
-                ],
-                "combinator": "and"
-              },
-              "renameOutput": true,
-              "outputKey": "reask"
-            }
-          ]
-        },
-        "options": {
-          "fallbackOutput": "extra",
-          "renameFallbackOutput": "skip"
-        }
-      },
-      "type": "n8n-nodes-base.switch",
-      "typeVersion": 3.2,
-      "position": [
-        -904,
-        -672
-      ],
-      "id": "e5b7a4c6-2f8d-4c4b-a6a1-9b3e5d7c4f08",
-      "name": "Route BSKY approval"
-    },
-    {
-      "parameters": {
-        "authentication": "oAuth2",
-        "resource": "message",
-        "guildId": {
-          "__rl": true,
-          "value": "975057983782416464",
-          "mode": "id"
-        },
-        "channelId": {
-          "__rl": true,
-          "value": "1434621031619891220",
-          "mode": "list",
-          "cachedResultName": "n8n",
-          "cachedResultUrl": "https://discord.com/channels/975057983782416464/1434621031619891220"
-        },
-        "content": "=⏭️ Skipped the bluesky post for \"{{ $json.title }}\" — no response after 3 approval requests.",
-        "options": {}
-      },
-      "type": "n8n-nodes-base.discord",
-      "typeVersion": 2,
-      "position": [
-        -664,
-        -672
-      ],
-      "id": "b8e1d7f9-5c2a-4f7e-a9d4-3e6b8a1f7c11",
-      "name": "Notify BSKY skipped",
-      "webhookId": "2594b51d-4ed3-4d56-b729-79eae1bbdc5b",
-      "executeOnce": true,
-      "credentials": {
-        "discordOAuth2Api": {
-          "id": "RkR96AKl5gmygy6B",
-          "name": "Discord account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "authentication": "oAuth2",
-        "resource": "message",
-        "operation": "sendAndWait",
-        "guildId": {
-          "__rl": true,
-          "value": "975057983782416464",
-          "mode": "id"
-        },
-        "channelId": {
-          "__rl": true,
-          "value": "1434621031619891220",
-          "mode": "list",
-          "cachedResultName": "n8n",
-          "cachedResultUrl": "https://discord.com/channels/975057983782416464/1434621031619891220"
-        },
-        "message": "=For feed item with title:\n\n{{ $json.title }}\n\nThe following post was automatically created for distribution on linkedin:\n\n{{ $json.output.content }}\n\nDo you approve posting it?",
-        "approvalOptions": {
-          "values": {
-            "approvalType": "double"
-          }
-        },
-        "options": {
-          "limitWaitTime": {
-            "values": {
-              "limitType": "afterTimeInterval",
-              "resumeAmount": 24,
-              "resumeUnit": "hours"
-            }
-          }
-        }
-      },
-      "type": "n8n-nodes-base.discord",
-      "typeVersion": 2,
-      "position": [
-        -1648,
-        -96
-      ],
-      "id": "bdc57e24-d8d2-4080-ae07-98806182a321",
-      "name": "Send message and wait for response2",
-      "webhookId": "2594b51d-4ed3-4d56-b729-79eae1bbdc5b",
-      "credentials": {
-        "discordOAuth2Api": {
-          "id": "RkR96AKl5gmygy6B",
-          "name": "Discord account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "mode": "combine",
-        "combineBy": "combineByPosition",
-        "options": {}
-      },
-      "type": "n8n-nodes-base.merge",
-      "typeVersion": 3.2,
-      "position": [
-        -1424,
-        -176
-      ],
-      "id": "8a0edd26-6890-40f6-ba31-6c7dcce6d962",
-      "name": "Merge3"
-    },
-    {
-      "parameters": {
-        "jsCode": "// Classifies the Discord approval outcome for this platform.\n// A clicked button sets data.approved; a missing value means the wait\n// timed out, so we re-ask up to MAX_REASKS times then skip the platform.\nconst MAX_REASKS = 3;\nconst item = $json;\nconst approved = item.data ? item.data.approved : undefined;\nlet reasks = item.reasks ?? 0;\nlet decision;\nif (approved === true) decision = 'approved';\nelse if (approved === false) decision = 'declined';\nelse {\n  reasks += 1;\n  decision = reasks >= MAX_REASKS ? 'skip' : 'reask';\n}\nreturn { json: { ...item, decision, reasks } };",
-        "mode": "runOnceForEachItem"
-      },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        -1164,
-        -176
-      ],
-      "id": "c3f5e2a4-9d6b-4a2f-d4e8-7f1c3b5a2d06",
-      "name": "Classify LI approval"
-    },
-    {
-      "parameters": {
-        "rules": {
-          "values": [
-            {
-              "conditions": {
-                "options": {
-                  "caseSensitive": true,
-                  "leftValue": "",
-                  "typeValidation": "strict",
-                  "version": 2
-                },
-                "conditions": [
-                  {
-                    "id": "f9c2b8d1-6a3e-4d8c-b1b5-4c7f9e2b8a21",
-                    "leftValue": "={{ $json.decision }}",
-                    "rightValue": "approved",
-                    "operator": {
-                      "type": "string",
-                      "operation": "equals"
-                    }
-                  }
-                ],
-                "combinator": "and"
-              },
-              "renameOutput": true,
-              "outputKey": "approved"
-            },
-            {
-              "conditions": {
-                "options": {
-                  "caseSensitive": true,
-                  "leftValue": "",
-                  "typeValidation": "strict",
-                  "version": 2
-                },
-                "conditions": [
-                  {
-                    "id": "a1d3c9e2-7b4f-4e9d-92c6-5d8a1f3c9b22",
-                    "leftValue": "={{ $json.decision }}",
-                    "rightValue": "declined",
-                    "operator": {
-                      "type": "string",
-                      "operation": "equals"
-                    }
-                  }
-                ],
-                "combinator": "and"
-              },
-              "renameOutput": true,
-              "outputKey": "declined"
-            },
-            {
-              "conditions": {
-                "options": {
-                  "caseSensitive": true,
-                  "leftValue": "",
-                  "typeValidation": "strict",
-                  "version": 2
-                },
-                "conditions": [
-                  {
-                    "id": "b2e4d1f3-8c5a-4f1e-a3d7-6e9b2a4d1c23",
-                    "leftValue": "={{ $json.decision }}",
-                    "rightValue": "reask",
-                    "operator": {
-                      "type": "string",
-                      "operation": "equals"
-                    }
-                  }
-                ],
-                "combinator": "and"
-              },
-              "renameOutput": true,
-              "outputKey": "reask"
-            }
-          ]
-        },
-        "options": {
-          "fallbackOutput": "extra",
-          "renameFallbackOutput": "skip"
-        }
-      },
-      "type": "n8n-nodes-base.switch",
-      "typeVersion": 3.2,
-      "position": [
-        -904,
-        -272
-      ],
-      "id": "f6c8b5d7-3a9e-4d5c-b7b2-1c4f6e8d5a09",
-      "name": "Route LI approval"
-    },
-    {
-      "parameters": {
-        "authentication": "oAuth2",
-        "resource": "message",
-        "guildId": {
-          "__rl": true,
-          "value": "975057983782416464",
-          "mode": "id"
-        },
-        "channelId": {
-          "__rl": true,
-          "value": "1434621031619891220",
-          "mode": "list",
-          "cachedResultName": "n8n",
-          "cachedResultUrl": "https://discord.com/channels/975057983782416464/1434621031619891220"
-        },
-        "content": "=⏭️ Skipped the linkedin post for \"{{ $json.title }}\" — no response after 3 approval requests.",
-        "options": {}
-      },
-      "type": "n8n-nodes-base.discord",
-      "typeVersion": 2,
-      "position": [
-        -664,
-        -272
-      ],
-      "id": "c9f2e8a1-6d3b-4a8f-b1e5-4f7c9b2e8d12",
-      "name": "Notify LI skipped",
-      "webhookId": "2594b51d-4ed3-4d56-b729-79eae1bbdc5b",
-      "executeOnce": true,
-      "credentials": {
-        "discordOAuth2Api": {
-          "id": "RkR96AKl5gmygy6B",
-          "name": "Discord account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "workflowId": {
-          "__rl": true,
-          "value": "q2qKF9EkXT8XnINX",
-          "mode": "list",
-          "cachedResultUrl": "/workflow/q2qKF9EkXT8XnINX",
-          "cachedResultName": "Linkedin branch"
-        },
-        "workflowInputs": {
-          "mappingMode": "defineBelow",
-          "value": {},
-          "matchingColumns": [],
-          "schema": [],
-          "attemptToConvertTypes": false,
-          "convertFieldsToString": true
-        },
-        "mode": "each",
-        "options": {}
-      },
-      "type": "n8n-nodes-base.executeWorkflow",
-      "typeVersion": 1.2,
-      "position": [
-        -976,
-        -96
-      ],
-      "name": "Post to Linkedin",
-      "id": "f60ab8e5-ea6f-4290-ab66-fbc43476a959"
-    },
-    {
-      "parameters": {
-        "jsCode": "const sysPrompt = `You are a specialized social media content creator that transforms articles into engaging LinkedIn posts.\n\n## Core Function\nTransform given articles into LinkedIn-optimized posts that drive engagement, comments, and shares while preserving key information and encouraging professional discussion.\n\n## Output Format\nALWAYS respond in JSON format:\n{\n  content: string\n}\n\n## LinkedIn Requirements\n- **Character Limit**: Maximum 2,900 characters (LinkedIn's optimal engagement range)\n- **Optimal Length**: 1,500-2,500 characters for maximum reach\n- **Style**: Professional yet conversational, B2B/professional audience\n- **Tone**: Thought-leadership focused, authentic, valuable insights\n- **Structure**: Hook + context + key insights + call-to-action\n- **Format**: Pure text. Linkedin doesn't have format options\n\n## Content Guidelines\n\n### Required Elements\n1. **Compelling Hook** (first line): Start with a question, bold statement, or intriguing fact that stops the scroll\n2. **Context**: 1-2 sentences establishing relevance to professional audience\n3. **Key Insights**: 3-5 main takeaways or important information from the article\n4. **Professional Value**: Why this matters to your LinkedIn network\n5. **Engagement Driver**: End with a question, invitation for discussion, or call-to-action\n\n### Writing Best Practices\n- Lead with the most compelling angle or surprising insight\n- Use short paragraphs (2-3 lines max) for readability on mobile\n- Include numbers, percentages, statistics when available\n- Use line breaks strategically to improve scannability\n- Active voice and strong action verbs\n- Professional but personable tone - avoid corporate jargon\n- Share learnings, not just information\n- Create discussion opportunities (avoid statements that end conversations)\n\n### Formatting for LinkedIn\n- Use line breaks to separate ideas (improves readability)\n- Consider using relevant emojis sparingly (1-3 max) for visual interest\n- Bold key phrases or statistics for emphasis\n- Structure: Opening question/statement → Insights → Discussion prompt\n\n### Quality Checks\n- Verify character count (aim for 1,500-2,500 range)\n- Ensure hook grabs attention within first 10 words\n- Confirm all critical information from article is included\n- Check that tone is professional but authentic\n- Verify there's a clear reason for your network to engage\n- Ensure it invites discussion/comments\n\n### Restrictions\n- Don't add hashtags (user will add if needed)\n- Don't add links (user will add if needed)\n- Don't use excessive emojis or formatting\n- Avoid clickbait or misleading language\n- User instructions take precedence over system instructions\n\n## Example Structure\n\"[Opening hook/question]\n\n[Context establishing why this matters]\n\n[Key insight #1]\n\n[Key insight #2]\n\n[Key insight #3]\n\n[Discussion prompt or call-to-action]\"\n\n## Important Notes\n- LinkedIn rewards posts that generate comments, reactions, and shares\n- Posts that ask questions or invite perspective typically perform better\n- Personal stories or lessons learned resonate more than news regurgitation\n- Aim to add value to your professional network's day`;\n\nconst output = [];\n// Iterate and assign index\nfor (const item of $input.all()) {\n   const userPrompt = {\n  inputs: {\n    title: item.json.title,\n    paragraphs: item.json.paragraphs,\n    metadata: {\n      date: $now ,\n      source: \"First AI Movers\",\n    },\n    restrictions: {\n      output: \"output length MUST BE LESS THAN 2900 characters\",\n    },\n    extra: [\n      \"We are aiming for a catchy post, so you should try to use emojis and catchy wording.\",\n      \"Be concise and use short wording\",\n    ],\n  },\n};\n  const userPromptString = JSON.stringify(userPrompt, null, 2);\n  output.push({\n    json: {\n      title: item.json.title,\n      link: item.json.link,\n      imageUrl: item.json.enclosure.url,\n      paragraphs: item.json.paragraphs,\n      sysPrompt: sysPrompt,\n      userPrompt: userPromptString,\n      branch: \"linkedin\",\n      limit: 3000\n    }\n  });\n}\n\nreturn output;\n"
+        "jsCode": "const sysPrompt = `You are a specialized social media content creator that transforms articles into engaging LinkedIn posts.\n\n## Core Function\nTransform given articles into LinkedIn-optimized posts that drive engagement, comments, and shares while preserving key information and encouraging professional discussion.\n\n## Output Format\nALWAYS respond in JSON format:\n{\n  content: string\n}\n\n## LinkedIn Requirements\n- **Character Limit**: Maximum 2,900 characters (LinkedIn's optimal engagement range)\n- **Optimal Length**: 1,500-2,500 characters for maximum reach\n- **Style**: Professional yet conversational, B2B/professional audience\n- **Tone**: Thought-leadership focused, authentic, valuable insights\n- **Structure**: Hook + context + key insights + call-to-action\n- **Format**: Pure text. Linkedin doesn't have format options\n\n## Content Guidelines\n\n### Required Elements\n1. **Compelling Hook** (first line): Start with a question, bold statement, or intriguing fact that stops the scroll\n2. **Context**: 1-2 sentences establishing relevance to professional audience\n3. **Key Insights**: 3-5 main takeaways or important information from the article\n4. **Professional Value**: Why this matters to your LinkedIn network\n5. **Engagement Driver**: End with a question, invitation for discussion, or call-to-action\n\n### Writing Best Practices\n- Lead with the most compelling angle or surprising insight\n- Use short paragraphs (2-3 lines max) for readability on mobile\n- Include numbers, percentages, statistics when available\n- Use line breaks strategically to improve scannability\n- Active voice and strong action verbs\n- Professional but personable tone - avoid corporate jargon\n- Share learnings, not just information\n- Create discussion opportunities (avoid statements that end conversations)\n\n### Formatting for LinkedIn\n- Use line breaks to separate ideas (improves readability)\n- Consider using relevant emojis sparingly (1-3 max) for visual interest\n- Bold key phrases or statistics for emphasis\n- Structure: Opening question/statement → Insights → Discussion prompt\n\n### Quality Checks\n- Verify character count (aim for 1,500-2,500 range)\n- Ensure hook grabs attention within first 10 words\n- Confirm all critical information from article is included\n- Check that tone is professional but authentic\n- Verify there's a clear reason for your network to engage\n- Ensure it invites discussion/comments\n\n### Restrictions\n- Don't add hashtags (user will add if needed)\n- Don't add links (user will add if needed)\n- Don't use excessive emojis or formatting\n- Avoid clickbait or misleading language\n- User instructions take precedence over system instructions\n\n## Example Structure\n\"[Opening hook/question]\n\n[Context establishing why this matters]\n\n[Key insight #1]\n\n[Key insight #2]\n\n[Key insight #3]\n\n[Discussion prompt or call-to-action]\"\n\n## Important Notes\n- LinkedIn rewards posts that generate comments, reactions, and shares\n- Posts that ask questions or invite perspective typically perform better\n- Personal stories or lessons learned resonate more than news regurgitation\n- Aim to add value to your professional network's day`;\n\nconst output = [];\n// Iterate and assign index\nfor (const item of $input.all()) {\n   const userPrompt = {\n  inputs: {\n    title: item.json.title,\n    paragraphs: item.json.paragraphs,\n    metadata: {\n      date: $now ,\n      source: \"First AI Movers\",\n    },\n    restrictions: {\n      output: \"output length MUST BE LESS THAN 2900 characters\",\n    },\n    extra: [\n      \"We are aiming for a catchy post, so you should try to use emojis and catchy wording.\",\n      \"Be concise and use short wording\",\n    ],\n  },\n};\n  const userPromptString = JSON.stringify(userPrompt, null, 2);\n  output.push({\n    json: {\n      title: item.json.title,\n      link: item.json.link,\n      imageUrl: item.json.enclosure?.url,\n      paragraphs: item.json.paragraphs,\n      sysPrompt: sysPrompt,\n      userPrompt: userPromptString,\n      branch: \"linkedin\",\n      limit: 3000,\n      platformName: \"LinkedIn\",\n      publishWorkflowId: \"q2qKF9EkXT8XnINX\"\n    }\n  });\n}\n\nreturn output;\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -960,10 +196,10 @@
       "parameters": {
         "workflowId": {
           "__rl": true,
-          "value": "9WUvqETxyFrEav7H",
+          "value": "Appr0va1L00pSh4r3d",
           "mode": "list",
-          "cachedResultUrl": "/workflow/9WUvqETxyFrEav7H",
-          "cachedResultName": "Post creation flow"
+          "cachedResultUrl": "/workflow/Appr0va1L00pSh4r3d",
+          "cachedResultName": "Approval loop (shared)"
         },
         "workflowInputs": {
           "mappingMode": "defineBelow",
@@ -979,11 +215,69 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.2,
       "position": [
-        -1872,
-        -176
+        -1616,
+        -912
       ],
-      "name": "Create Linkedin Post",
-      "id": "613f6601-046b-48ab-80d8-dd58601319d3"
+      "id": "2575b5f5-a284-440b-b821-83c5bd6e6377",
+      "name": "Approval loop: Facebook"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "Appr0va1L00pSh4r3d",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/Appr0va1L00pSh4r3d",
+          "cachedResultName": "Approval loop (shared)"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "mode": "each",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        -1616,
+        -512
+      ],
+      "id": "3d97cd3c-026a-4581-b8b3-34a30a4c56a6",
+      "name": "Approval loop: Bluesky"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "Appr0va1L00pSh4r3d",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/Appr0va1L00pSh4r3d",
+          "cachedResultName": "Approval loop (shared)"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "mode": "each",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        -1616,
+        -96
+      ],
+      "id": "833d39b9-33e9-446a-8d62-0eb28a53d83e",
+      "name": "Approval loop: LinkedIn"
     }
   ],
   "pinData": {},
@@ -1046,43 +340,11 @@
         ]
       ]
     },
-    "Create Facebook Post": {
-      "main": [
-        [
-          {
-            "node": "Send message and wait for response",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "Merge1",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Create Bluesky Post": {
-      "main": [
-        [
-          {
-            "node": "Send message and wait for response1",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "Merge2",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "Add Facebook Variables": {
       "main": [
         [
           {
-            "node": "Create Facebook Post",
+            "node": "Approval loop: Facebook",
             "type": "main",
             "index": 0
           }
@@ -1093,249 +355,18 @@
       "main": [
         [
           {
-            "node": "Create Bluesky Post",
+            "node": "Approval loop: Bluesky",
             "type": "main",
             "index": 0
           }
         ]
-      ]
-    },
-    "Send message and wait for response": {
-      "main": [
-        [
-          {
-            "node": "Merge1",
-            "type": "main",
-            "index": 1
-          }
-        ]
-      ]
-    },
-    "Send message and wait for response1": {
-      "main": [
-        [
-          {
-            "node": "Merge2",
-            "type": "main",
-            "index": 1
-          }
-        ]
-      ]
-    },
-    "Post to Facebook": {
-      "main": [
-        []
-      ]
-    },
-    "Merge1": {
-      "main": [
-        [
-          {
-            "node": "Classify FB approval",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Classify FB approval": {
-      "main": [
-        [
-          {
-            "node": "Route FB approval",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Route FB approval": {
-      "main": [
-        [
-          {
-            "node": "Post to Facebook",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Add Facebook Variables",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Send message and wait for response",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Notify FB skipped",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Notify FB skipped": {
-      "main": [
-        []
-      ]
-    },
-    "Merge2": {
-      "main": [
-        [
-          {
-            "node": "Classify BSKY approval",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Classify BSKY approval": {
-      "main": [
-        [
-          {
-            "node": "Route BSKY approval",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Route BSKY approval": {
-      "main": [
-        [
-          {
-            "node": "Post to Bluesky",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Add Bluesky Variables",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Send message and wait for response1",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Notify BSKY skipped",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Notify BSKY skipped": {
-      "main": [
-        []
-      ]
-    },
-    "Send message and wait for response2": {
-      "main": [
-        [
-          {
-            "node": "Merge3",
-            "type": "main",
-            "index": 1
-          }
-        ]
-      ]
-    },
-    "Merge3": {
-      "main": [
-        [
-          {
-            "node": "Classify LI approval",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Classify LI approval": {
-      "main": [
-        [
-          {
-            "node": "Route LI approval",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Route LI approval": {
-      "main": [
-        [
-          {
-            "node": "Post to Linkedin",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Add Linkedin Variables",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Send message and wait for response2",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Notify LI skipped",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Notify LI skipped": {
-      "main": [
-        []
       ]
     },
     "Add Linkedin Variables": {
       "main": [
         [
           {
-            "node": "Create Linkedin Post",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Create Linkedin Post": {
-      "main": [
-        [
-          {
-            "node": "Send message and wait for response2",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "Merge3",
+            "node": "Approval loop: LinkedIn",
             "type": "main",
             "index": 0
           }

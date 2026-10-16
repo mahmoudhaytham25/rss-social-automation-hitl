@@ -69,10 +69,10 @@ flowchart TD
     MERGE --> BSV["Add Bluesky Variables"]
     MERGE --> LIV["Add Linkedin Variables"]
 
-    subgraph LOOP["Per-platform branch — runs for Facebook / Bluesky / LinkedIn"]
-        GEN["post-creation-flow sub-workflow<br/>Gemini AI Agent + xlsx audit log"]
+    subgraph LOOP["approval-loop.json — shared sub-workflow, parameterized by platformName + publishWorkflowId"]
+        GEN["Generate post<br/>(→ post-creation-flow: Gemini AI Agent + xlsx audit log)"]
         WAIT{"Discord sendAndWait<br/>approval"}
-        PUB["platform branch sub-workflow<br/>(publish)"]
+        PUB["Publish post<br/>(→ {{ publishWorkflowId }} branch)"]
         REASK["re-send approval<br/>(24h wait, max 3 asks)"]
         SKIP["skip platform +<br/>Discord notification"]
 
@@ -84,11 +84,11 @@ flowchart TD
         REASK -->|3 unanswered asks| SKIP
     end
 
-    FBV --> GEN
-    BSV --> GEN
-    LIV --> GEN
+    FBV --> LOOP
+    BSV --> LOOP
+    LIV --> LOOP
 
-    ALL["any of the 5 workflow exports"] -.->|"settings.errorWorkflow on failure"| ERR["error-handler.json<br/>Error Trigger → Discord notification"]
+    ALL["any of the 6 non-error exports"] -.->|"settings.errorWorkflow on failure"| ERR["error-handler.json<br/>Error Trigger → Discord notification"]
 ```
 
 ---
@@ -116,10 +116,10 @@ cp .env.example .env          # set N8N_ENCRYPTION_KEY, WEBHOOK_URL, timezone
 docker compose up -d          # n8n on http://localhost:5678
 ```
 
-Import all six workflows with their ids preserved (order matters — sub-workflows and the error handler before `main.json`, whose `executeWorkflow` nodes and `settings.errorWorkflow` reference them by id):
+Import all seven workflows with their ids preserved (order matters — sub-workflows and the error handler before `main.json`, whose `executeWorkflow` nodes and `settings.errorWorkflow` reference them by id):
 
 ```bash
-for f in error-handler post-creation-flow bluesky-branch facebook-branch linkedin-branch main; do
+for f in error-handler post-creation-flow bluesky-branch facebook-branch linkedin-branch approval-loop main; do
   docker compose exec n8n n8n import:workflow --input="/files/workflows/${f}.json"
 done
 ```
@@ -132,8 +132,9 @@ All n8n workflow exports live in [`workflows/`](workflows/):
 
 | File | Purpose |
 |------|---------|
-| `main.json` | RSS trigger → content extraction → platform branching → Discord approval loop |
+| `main.json` | RSS trigger → content extraction → per-platform variables → shared approval loop |
 | `post-creation-flow.json` | Shared sub-workflow: LLM post generation + audit logging |
+| `approval-loop.json` | Shared sub-workflow: Discord approval → publish/regenerate/re-ask/skip; publishes via the item's `publishWorkflowId` |
 | `bluesky-branch.json` | Bluesky publishing (ATProto auth, facets, image blobs) |
 | `facebook-branch.json` | Facebook publishing (Graph API, image upload) |
 | `linkedin-branch.json` | LinkedIn publishing |

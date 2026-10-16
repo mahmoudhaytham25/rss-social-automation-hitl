@@ -12,9 +12,11 @@ the wiring and expression invariants behind recent bugfixes:
 * no plaintext secrets in any export,
 * export hygiene — no ``meta``/``versionId`` keys, ``active`` falsy,
   unique workflow ids across all six exports,
-* the Discord approval loop — 24h ``limitWaitTime`` on ``sendAndWait``,
-  bounded re-ask via ``Classify``/``Route`` nodes with a notify-and-skip
-  exit (main),
+* the shared Discord approval loop — 24h ``limitWaitTime`` on
+  ``sendAndWait``, bounded re-ask via ``Classify``/``Route`` nodes with a
+  notify-and-skip exit, decline-path field reset, and expression-based
+  publish dispatch (approval-loop); the per-platform ``platformName`` /
+  ``publishWorkflowId`` contract it consumes (main, post-creation flow),
 * retry policy — transient fetches retry ``3x`` with ``1s`` backoff,
   publish calls never retry,
 * every workflow routed to the shared ``error-handler`` sub-workflow,
@@ -53,6 +55,7 @@ from conftest import (
 
 MAIN = "main.json"
 POST_CREATION = "post-creation-flow.json"
+APPROVAL_LOOP = "approval-loop.json"
 BLUESKY = "bluesky-branch.json"
 FACEBOOK = "facebook-branch.json"
 LINKEDIN = "linkedin-branch.json"
@@ -132,24 +135,30 @@ class TestConnectionIntegrity:
 # ---------------------------------------------------------------------------
 
 class TestSubWorkflowReferences:
-    def test_execute_workflow_targets_are_exported(self):
-        """main.json calls sub-workflows by workflowId value; every referenced
-        id must match the top-level ``id`` of one of the exported files."""
-        main = load_workflow(MAIN)
+    @pytest.mark.parametrize("filename", WORKFLOW_FILES)
+    def test_execute_workflow_targets_are_exported(self, filename):
+        """executeWorkflow nodes call sub-workflows by workflowId value; every
+        statically referenced id must match the top-level ``id`` of one of the
+        exported files. Expression values (``={{ ... }}``) are resolved at
+        runtime and checked separately by TestApprovalLoop."""
+        workflow = load_workflow(filename)
         id_to_name = {
             wf["id"]: wf.get("name") for wf in load_all_workflows().values()
         }
 
         callers = find_nodes(
-            main, lambda n: n["type"].endswith("executeWorkflow")
+            workflow, lambda n: n["type"].endswith("executeWorkflow")
         )
-        assert callers, "expected at least one executeWorkflow node in main.json"
+        if filename == MAIN:
+            assert callers, "expected executeWorkflow nodes in main.json"
 
         for node in callers:
             ref = node["parameters"].get("workflowId")
             value = ref.get("value") if isinstance(ref, dict) else ref
+            if isinstance(value, str) and value.startswith("="):
+                continue  # dynamic dispatch — pinned in TestApprovalLoop
             assert value in id_to_name, (
-                f"executeWorkflow node {node['name']!r} calls workflow id "
+                f"{filename} / {node['name']!r} calls workflow id "
                 f"{value!r}, which is not among the exported ids "
                 f"{sorted(id_to_name)}"
             )
@@ -529,60 +538,54 @@ class TestExportHygiene:
 
 
 # ---------------------------------------------------------------------------
-# 7. Discord approval loop — bounded re-ask with timeout (main.json)
+# 7. Shared approval loop (approval-loop.json) + main-side dispatch contract
 # ---------------------------------------------------------------------------
 
-# The three per-platform approval loops. ``MergeN`` combines the generated
-# post with the feed item; the discord ``sendAndWait`` then pauses for human
-# approval; ``Classify`` (code) turns the reply into a ``decision`` bounded
-# by ``MAX_REASKS``; ``Route`` (switch) fans it out to
-# [publish, regenerate, re-ask, skip+notify].
-APPROVAL_LOOPS = {
-    "facebook": {
-        "send_wait": "Send message and wait for response",
-        "merge": "Merge1",
-        "classify": "Classify FB approval",
-        "route": "Route FB approval",
-        "post": "Post to Facebook",
-        "add_vars": "Add Facebook Variables",
-        "notify": "Notify FB skipped",
-    },
-    "bluesky": {
-        "send_wait": "Send message and wait for response1",
-        "merge": "Merge2",
-        "classify": "Classify BSKY approval",
-        "route": "Route BSKY approval",
-        "post": "Post to Bluesky",
-        "add_vars": "Add Bluesky Variables",
-        "notify": "Notify BSKY skipped",
-    },
-    "linkedin": {
-        "send_wait": "Send message and wait for response2",
-        "merge": "Merge3",
-        "classify": "Classify LI approval",
-        "route": "Route LI approval",
-        "post": "Post to Linkedin",
-        "add_vars": "Add Linkedin Variables",
-        "notify": "Notify LI skipped",
-    },
+# The three platforms used to duplicate the same 7-node approval loop in
+# main.json. It now lives once in approval-loop.json; each platform calls it
+# via an executeWorkflow node, and the loop dispatches the publish step back
+# out through the item's ``publishWorkflowId`` field.
+
+# Fields the wrapper passes to post-creation-flow on (re)generation. The
+# decline path must emit exactly these — nothing else — so stale verdicts
+# (``data.approved``, ``decision``, ``reasks``) or a previous ``output`` can
+# never leak into the next wait and be misclassified.
+RESET_VARS_FIELDS = {
+    "title",
+    "link",
+    "imageUrl",
+    "paragraphs",
+    "sysPrompt",
+    "userPrompt",
+    "branch",
+    "limit",
+    "platformName",
+    "publishWorkflowId",
 }
 
-LEGACY_APPROVAL_NODES = {"If", "If1", "If2"}
+# main.json: each platform's variables node feeds an executeWorkflow call to
+# the shared loop, and emits the publish target for that platform.
+PLATFORM_DISPATCH = {
+    "Add Facebook Variables": ("Facebook", "rYRy7pbxfnStYz7H"),
+    "Add Bluesky Variables": ("Bluesky", "zvxqmMaPcqiBRWOC"),
+    "Add Linkedin Variables": ("LinkedIn", "q2qKF9EkXT8XnINX"),
+}
+
+APPROVAL_LOOP_ID = "Appr0va1L00pSh4r3d"
 
 
-class TestApprovalTimeout:
-    """Pins the approval-loop contract: a 24h wait cap, a bounded number of
-    re-asks decided by the Classify code node, and a Route switch whose four
-    outputs land on the right targets — including the re-ask edge that loops
-    back onto the sendAndWait node itself."""
+class TestApprovalLoop:
+    """Pins the approval-loop contract in the shared sub-workflow: a 24h wait
+    cap, a bounded number of re-asks decided by the Classify code node, a
+    Route switch whose four outputs land on the right targets — including
+    the re-ask edge looping back onto the sendAndWait node — and a decline
+    path that regenerates through a strict field reset."""
 
-    @pytest.mark.parametrize(
-        "loop", APPROVAL_LOOPS.values(), ids=APPROVAL_LOOPS.keys()
-    )
-    def test_send_and_wait_has_24h_limit(self, loop):
+    def test_send_and_wait_has_24h_limit(self):
         """Without ``limitWaitTime`` a sendAndWait waits forever — an
         unanswered approval stalls the whole pipeline indefinitely."""
-        node = node_by_name(load_workflow(MAIN), loop["send_wait"])
+        node = node_by_name(load_workflow(APPROVAL_LOOP), "Wait for approval")
+        assert node["parameters"].get("operation") == "sendAndWait"
         values = (
             node.get("parameters", {})
             .get("options", {})
@@ -590,108 +593,199 @@ class TestApprovalTimeout:
             .get("values")
         )
         if isinstance(values, list):  # fixedCollection may export a list
-            assert len(values) == 1, (
-                f"{loop['send_wait']!r}: unexpected limitWaitTime shape"
-            )
+            assert len(values) == 1, "unexpected limitWaitTime shape"
             values = values[0]
-        assert isinstance(values, dict), (
-            f"{loop['send_wait']!r}: options.limitWaitTime.values missing"
-        )
+        assert isinstance(values, dict), "options.limitWaitTime.values missing"
         assert values.get("resumeAmount") == 24
         assert values.get("resumeUnit") == "hours"
 
-    @pytest.mark.parametrize(
-        "loop", APPROVAL_LOOPS.values(), ids=APPROVAL_LOOPS.keys()
-    )
-    def test_loop_is_wired_send_wait_merge_classify_route(self, loop):
-        workflow = load_workflow(MAIN)
+    def test_loop_is_wired_generate_wait_merge_classify_route(self):
+        workflow = load_workflow(APPROVAL_LOOP)
         for source, expected in (
-            (loop["send_wait"], loop["merge"]),
-            (loop["merge"], loop["classify"]),
-            (loop["classify"], loop["route"]),
+            ("Start", "Generate post"),
+            ("Generate post", "Wait for approval"),
+            ("Generate post", "Merge"),
+            ("Wait for approval", "Merge"),
+            ("Merge", "Classify approval"),
+            ("Classify approval", "Route approval"),
         ):
             targets = {t for _i, t in successors(workflow, source)}
             assert expected in targets, (
                 f"{source!r} must feed {expected!r}; got {sorted(targets)}"
             )
 
-    @pytest.mark.parametrize(
-        "loop", APPROVAL_LOOPS.values(), ids=APPROVAL_LOOPS.keys()
-    )
-    def test_classify_is_code_node_with_bounded_reask_logic(self, loop):
-        node = node_by_name(load_workflow(MAIN), loop["classify"])
-        assert node["type"].endswith(".code"), (
-            f"{loop['classify']!r}: expected a code node, "
-            f"got {node['type']!r}"
+    def test_generate_post_calls_post_creation_flow(self):
+        node = node_by_name(load_workflow(APPROVAL_LOOP), "Generate post")
+        assert node["type"].endswith("executeWorkflow")
+        assert (
+            node["parameters"]["workflowId"]["value"]
+            == load_workflow(POST_CREATION)["id"]
         )
+
+    def test_merge_combines_post_with_verdict(self):
+        """A button click returns only ``{data: {approved}}`` — the generated
+        post lives on input 0 and must be recombined positionally."""
+        node = node_by_name(load_workflow(APPROVAL_LOOP), "Merge")
+        params = node["parameters"]
+        assert params.get("mode") == "combine"
+        assert params.get("combineBy") == "combineByPosition"
+
+    def test_classify_is_code_node_with_bounded_reask_logic(self):
+        node = node_by_name(load_workflow(APPROVAL_LOOP), "Classify approval")
+        assert node["type"].endswith(".code")
         code = node.get("parameters", {}).get("jsCode", "")
         for token in ("MAX_REASKS", "decision", "reasks"):
             assert token in code, (
-                f"{loop['classify']!r}: jsCode is missing {token!r} — "
+                f"classifier jsCode is missing {token!r} — "
                 "the re-ask loop may be unbounded"
             )
 
-    @pytest.mark.parametrize(
-        "loop", APPROVAL_LOOPS.values(), ids=APPROVAL_LOOPS.keys()
-    )
-    def test_route_switch_outputs_hit_the_right_targets(self, loop):
-        workflow = load_workflow(MAIN)
-        route = node_by_name(workflow, loop["route"])
-        assert route["type"].endswith(".switch"), (
-            f"{loop['route']!r}: expected a switch node, "
-            f"got {route['type']!r}"
-        )
+    def test_route_switch_outputs_hit_the_right_targets(self):
+        workflow = load_workflow(APPROVAL_LOOP)
+        route = node_by_name(workflow, "Route approval")
+        assert route["type"].endswith(".switch")
         outputs = (
             workflow.get("connections", {})
-            .get(loop["route"], {})
+            .get("Route approval", {})
             .get("main", [])
         )
         assert len(outputs) == 4, (
-            f"{loop['route']!r}: expected exactly 4 outputs "
+            f"Route approval: expected exactly 4 outputs "
             "(publish / regenerate / re-ask / skip), "
             f"got {len(outputs)}"
         )
         by_index = {}
-        for output_index, target in successors(workflow, loop["route"]):
+        for output_index, target in successors(workflow, "Route approval"):
             by_index.setdefault(output_index, []).append(target)
-        assert by_index.get(0) == [loop["post"]], (
+        assert by_index.get(0) == ["Publish post"], (
             "output[0] must publish to the platform"
         )
-        assert by_index.get(1) == [loop["add_vars"]], (
-            "output[1] must regenerate via the variables node"
+        assert by_index.get(1) == ["Reset post vars"], (
+            "output[1] must regenerate via the field reset"
         )
-        assert by_index.get(2) == [loop["send_wait"]], (
+        assert by_index.get(2) == ["Wait for approval"], (
             "output[2] is the re-ask loop — it must feed back into the "
-            "platform's own sendAndWait node"
+            "sendAndWait node"
         )
-        assert by_index.get(3) == [loop["notify"]], (
+        assert by_index.get(3) == ["Notify skipped"], (
             "output[3] must notify that the post was skipped"
         )
 
-    @pytest.mark.parametrize(
-        "loop", APPROVAL_LOOPS.values(), ids=APPROVAL_LOOPS.keys()
-    )
-    def test_notify_node_is_a_dead_end_discord_message(self, loop):
-        workflow = load_workflow(MAIN)
-        node = node_by_name(workflow, loop["notify"])
-        assert node["type"].endswith("discord"), (
-            f"{loop['notify']!r}: expected a discord node, "
-            f"got {node['type']!r}"
+    def test_publish_dispatches_by_publish_workflow_id(self):
+        """The shared loop publishes via ``{{ $json.publishWorkflowId }}`` —
+        the per-platform value emitted by main's variables nodes."""
+        node = node_by_name(load_workflow(APPROVAL_LOOP), "Publish post")
+        assert node["type"].endswith("executeWorkflow")
+        assert node["parameters"].get("mode") == "each"
+        ref = node["parameters"]["workflowId"]
+        assert ref.get("value") == "={{ $json.publishWorkflowId }}"
+
+    def test_decline_resets_item_before_regenerating(self):
+        """The decline route loops back through a Set node that re-emits
+        exactly the post-vars fields. A bare ``{...item}`` passthrough would
+        carry ``data.approved: false`` into the next wait; the following
+        timeout passthrough would then read a stale verdict and misclassify
+        the timeout as another decline."""
+        workflow = load_workflow(APPROVAL_LOOP)
+        reset = node_by_name(workflow, "Reset post vars")
+        assert reset["type"].endswith(".set")
+        assigned = {
+            a["name"]
+            for a in reset["parameters"]["assignments"]["assignments"]
+        }
+        assert assigned == RESET_VARS_FIELDS
+        # And the reset must feed back into generation — not the wait —
+        # so a decline always regenerates the post.
+        targets = {t for _i, t in successors(workflow, "Reset post vars")}
+        assert targets == {"Generate post"}, (
+            f"Reset post vars must feed Generate post; got {sorted(targets)}"
         )
+
+    def test_notify_node_is_a_dead_end_discord_message(self):
+        workflow = load_workflow(APPROVAL_LOOP)
+        node = node_by_name(workflow, "Notify skipped")
+        assert node["type"].endswith("discord")
         outgoing = [
             edge
             for source, _conn_type, edge in iter_edges(workflow)
-            if source == loop["notify"]
+            if source == "Notify skipped"
         ]
         assert not outgoing, (
-            f"{loop['notify']!r} must be a terminal notification — "
+            "'Notify skipped' must be a terminal notification — "
             "nothing should consume its output"
         )
+
+    def test_sub_workflow_emits_platform_fields(self):
+        """``platformName``/``publishWorkflowId`` reach the publish and
+        notify nodes via post-creation-flow's output — they must be
+        carried through ``Output data`` and the internal ``Code2``
+        regeneration rebuild."""
+        workflow = load_workflow(POST_CREATION)
+        out = node_by_name(workflow, "Output data")
+        names = {
+            a["name"] for a in out["parameters"]["assignments"]["assignments"]
+        }
+        assert {"platformName", "publishWorkflowId"} <= names, (
+            f"'Output data' drops platform fields: {sorted(names)}"
+        )
+        code2 = node_by_name(workflow, "Code2")["parameters"]["jsCode"]
+        for field in ("platformName", "publishWorkflowId"):
+            assert field in code2, (
+                f"Code2 rebuild drops {field!r} on the over-length "
+                "regeneration path"
+            )
+
+
+class TestMainApprovalDispatch:
+    """main.json holds one variables node + one shared-loop call per
+    platform; the variables node emits the platform identity and publish
+    target the loop needs."""
+
+    @pytest.mark.parametrize(
+        "add_vars,publish_id",
+        [(v, meta[1]) for v, meta in PLATFORM_DISPATCH.items()],
+        ids=list(PLATFORM_DISPATCH),
+    )
+    def test_variables_node_feeds_shared_loop(self, add_vars, publish_id):
+        workflow = load_workflow(MAIN)
+        targets = {t for _i, t in successors(workflow, add_vars)}
+        assert len(targets) == 1, (
+            f"{add_vars!r} should feed exactly one node; got {sorted(targets)}"
+        )
+        target = node_by_name(workflow, next(iter(targets)))
+        assert target["type"].endswith("executeWorkflow")
+        assert (
+            target["parameters"]["workflowId"]["value"] == APPROVAL_LOOP_ID
+        )
+
+    @pytest.mark.parametrize(
+        "add_vars,meta", list(PLATFORM_DISPATCH.items()), ids=list(PLATFORM_DISPATCH)
+    )
+    def test_variables_node_emits_platform_metadata(self, add_vars, meta):
+        platform_name, publish_id = meta
+        code = node_by_name(load_workflow(MAIN), add_vars)["parameters"][
+            "jsCode"
+        ]
+        assert f'platformName: "{platform_name}"' in code
+        assert f'publishWorkflowId: "{publish_id}"' in code
+
+    @pytest.mark.parametrize(
+        "add_vars", list(PLATFORM_DISPATCH), ids=list(PLATFORM_DISPATCH)
+    )
+    def test_enclosure_access_is_guarded(self, add_vars):
+        """A feed item without an ``<enclosure>`` (no image) must not crash
+        the run — ``enclosure?.url`` yields undefined and the branch's
+        image-If routes the no-image path."""
+        code = node_by_name(load_workflow(MAIN), add_vars)["parameters"][
+            "jsCode"
+        ]
+        assert "enclosure?.url" in code
+        assert not re.search(r"enclosure\.url", code.replace("enclosure?.url", ""))
 
     def test_legacy_if_nodes_are_gone(self):
         """The single-branch If/If1/If2 approval checks were replaced by the
         Classify/Route loop; if they reappear the re-ask cap is bypassed."""
-        leftover = node_names(load_workflow(MAIN)) & LEGACY_APPROVAL_NODES
+        leftover = node_names(load_workflow(MAIN)) & {"If", "If1", "If2"}
         assert not leftover, (
             f"legacy approval nodes still present: {sorted(leftover)}"
         )

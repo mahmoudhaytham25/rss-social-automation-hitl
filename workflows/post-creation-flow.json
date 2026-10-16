@@ -262,7 +262,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const output = [];\n// Iterate and assign index\nfor (const item of $input.all()) {\n  output.push({\n    json: {\n      index: item.json.index,\n      title: item.json.title,\n      link: item.json.link,\n      imageUrl: item.json.imageUrl || null,\n      paragraphs: item.json.paragraphs || null,\n      sysPrompt: item.json.sysPrompt,\n      userPrompt: item.json.userPrompt,\n      branch: item.json.branch,\n      limit: item.json.limit,\n      attempts: (item.json.attempts || 0) + 1\n    }\n  });\n}\n\nreturn output;\n"
+        "jsCode": "const output = [];\n// Iterate and assign index\nfor (const item of $input.all()) {\n  output.push({\n    json: {\n      index: item.json.index,\n      title: item.json.title,\n      link: item.json.link,\n      imageUrl: item.json.imageUrl || null,\n      paragraphs: item.json.paragraphs || null,\n      sysPrompt: item.json.sysPrompt,\n      userPrompt: item.json.userPrompt,\n      branch: item.json.branch,\n      limit: item.json.limit,\n      attempts: (item.json.attempts || 0) + 1,\n      platformName: item.json.platformName,\n      publishWorkflowId: item.json.publishWorkflowId\n    }\n  });\n}\n\nreturn output;\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -331,6 +331,18 @@
               "name": "paragraphs",
               "value": "={{ $json.paragraphs }}",
               "type": "array"
+            },
+            {
+              "id": "b1cb42f7-dec6-492a-aaa7-1d1573bee0ff",
+              "name": "platformName",
+              "value": "={{ $json.platformName }}",
+              "type": "string"
+            },
+            {
+              "id": "5df537ac-43aa-4293-a9df-af4f3d71fa27",
+              "name": "publishWorkflowId",
+              "value": "={{ $json.publishWorkflowId }}",
+              "type": "string"
             }
           ]
         },

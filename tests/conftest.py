@@ -19,6 +19,7 @@ WORKFLOWS_DIR = REPO_ROOT / "workflows"
 WORKFLOW_FILES = (
     "main.json",
     "post-creation-flow.json",
+    "approval-loop.json",
     "bluesky-branch.json",
     "facebook-branch.json",
     "linkedin-branch.json",

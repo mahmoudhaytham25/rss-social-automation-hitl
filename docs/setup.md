@@ -49,13 +49,14 @@ docker compose exec n8n n8n import:workflow --input=/files/workflows/post-creati
 docker compose exec n8n n8n import:workflow --input=/files/workflows/bluesky-branch.json
 docker compose exec n8n n8n import:workflow --input=/files/workflows/facebook-branch.json
 docker compose exec n8n n8n import:workflow --input=/files/workflows/linkedin-branch.json
+docker compose exec n8n n8n import:workflow --input=/files/workflows/approval-loop.json
 docker compose exec n8n n8n import:workflow --input=/files/workflows/main.json
 ```
 
 Or as a one-liner:
 
 ```bash
-for f in error-handler post-creation-flow bluesky-branch facebook-branch linkedin-branch main; do
+for f in error-handler post-creation-flow bluesky-branch facebook-branch linkedin-branch approval-loop main; do
   docker compose exec n8n n8n import:workflow --input="/files/workflows/${f}.json"
 done
 ```
@@ -73,6 +74,7 @@ Expected ids after import — verify they match what `main.json` references:
 | `bluesky-branch.json` | Bluesky branch | `zvxqmMaPcqiBRWOC` |
 | `facebook-branch.json` | Facebook branch | `rYRy7pbxfnStYz7H` |
 | `linkedin-branch.json` | Linkedin branch | `q2qKF9EkXT8XnINX` |
+| `approval-loop.json` | Approval loop (shared) | `Appr0va1L00pSh4r3d` |
 | `main.json` | Project 3 | `E5LNKyY3Odkk92b1` |
 
 ### If you import through the n8n UI instead
@@ -80,11 +82,18 @@ Expected ids after import — verify they match what `main.json` references:
 The UI generates **new** workflow ids, so every internal reference must be
 re-pointed manually afterwards:
 
-- In `main.json`, re-select the target workflow in all **6 `executeWorkflow`
-  nodes**: `Create Facebook Post`, `Create Bluesky Post`, `Create Linkedin
-  Post` (all → post-creation-flow), and `Post to Facebook`, `Post to
-  Bluesky`, `Post to Linkedin` (→ the matching branch workflow).
-- In **all 5** non-error workflows, open **Settings → Error workflow** and
+- In `main.json`, re-select `Approval loop (shared)` in all **3
+  `executeWorkflow` nodes** (`Approval loop: Facebook`, `Approval loop:
+  Bluesky`, `Approval loop: LinkedIn`).
+- In `approval-loop.json`, re-select `Post creation flow` in **Generate
+  post**.
+- **Publish dispatch is data-driven:** `approval-loop.json`'s **Publish
+  post** node calls whatever workflow id the item carries in
+  `publishWorkflowId`. That field is hardcoded in each `Add * Variables`
+  code node in `main.json` — after a UI re-import, update those three
+  constants to the new branch-workflow ids (Facebook `rYRy7pbxfnStYz7H`,
+  Bluesky `zvxqmMaPcqiBRWOC`, LinkedIn `q2qKF9EkXT8XnINX` before re-import).
+- In **all 6** non-error workflows, open **Settings → Error workflow** and
   re-select the error handler workflow.
 
 ## Step 3 — Create the credentials
@@ -96,7 +105,7 @@ Credential → Create new). Five credential types are used:
 | n8n credential type | Used in | How to create |
 |---------------------|---------|---------------|
 | `googlePalmApi` — "Google PaLM API" | `post-creation-flow.json` → **Google Gemini Chat Model** (LLM behind the AI Agent) | Create a Gemini API key at [Google AI Studio](https://aistudio.google.com/apikey). In n8n: **Credentials → New → Google PaLM API** → paste the key. |
-| `discordOAuth2Api` | `main.json` → all 5 Discord nodes (3 `sendAndWait` approvals + 2 separator messages); `error-handler.json` → the failure-notification node | Create an application in the [Discord Developer Portal](https://discord.com/developers/applications/), enable the **bot** and invite it to your server with permission to view + post in the approval channel. Under **OAuth2 → Redirects**, add the OAuth Redirect URL shown in n8n's Discord credential screen (use the public `WEBHOOK_URL` when approving remotely — see the [ngrok guide](ngrok-approval-setup.md)). Then connect the credential in n8n. |
+| `discordOAuth2Api` | `main.json` → the 2 separator messages; `approval-loop.json` → **Wait for approval** + **Notify skipped**; `error-handler.json` → the failure-notification node | Create an application in the [Discord Developer Portal](https://discord.com/developers/applications/), enable the **bot** and invite it to your server with permission to view + post in the approval channel. Under **OAuth2 → Redirects**, add the OAuth Redirect URL shown in n8n's Discord credential screen (use the public `WEBHOOK_URL` when approving remotely — see the [ngrok guide](ngrok-approval-setup.md)). Then connect the credential in n8n. |
 | `httpBearerAuth` — "Header Auth" / Bearer token | `facebook-branch.json` → all 4 HTTP nodes (`Get Facebook Page ID`, `Image upload to FB`, `Post Creation FB`, `Post Creation FB1`) — Graph API `v23.0` | Generate a **Facebook Page access token** in Meta for Developers (`pages_manage_posts`, `pages_read_engagement` scopes). In n8n: **Credentials → New → Bearer Auth (HTTP)** → paste the token. |
 | `httpCustomAuth` — "Custom Auth" | `bluesky-branch.json` → **Open BlueSky Session** (`POST https://bsky.social/xrpc/com.atproto.server.createSession`) | The node sends the credential's JSON as the request body to `createSession`. In n8n: **Credentials → New → Custom Auth** and set the JSON to `{"body": {"identifier": "<your-handle>.bsky.social", "password": "<app-password>"}}`. Create the app password at https://bsky.social/settings/app-passwords — do **not** use your main password. The node already sends `Content-Type: application/json`. |
 | `linkedInOAuth2Api` | `linkedin-branch.json` → **Create a post WO/img**, **Create a post W/img** | n8n's built-in LinkedIn OAuth2: **Credentials → New → LinkedIn OAuth2 API** and connect your account (or supply a LinkedIn app's client id/secret with the `w_member_social` scope). |
@@ -106,12 +115,12 @@ Credential → Create new). Five credential types are used:
 These values were exported from the author's instance and must be changed:
 
 - **Discord server/channel** — guild id `975057983782416464` and channel id
-  `1434621031619891220` appear in **5 Discord nodes in `main.json`** ("Send
-  message and wait for response", "...response1", "...response2", "Send a
-  message", "Send a message1") and **1 Discord node in
-  `error-handler.json`**. Re-select your own server and channel in each
-  node — after connecting the credential, the server is picked by id and the
-  channel from the dropdown list.
+  `1434621031619891220` appear in **2 Discord nodes in `main.json`** ("Send a
+  message", "Send a message1"), **2 in `approval-loop.json`** ("Wait for
+  approval", "Notify skipped") and **1 in `error-handler.json`**. Re-select
+  your own server and channel in each node — after connecting the
+  credential, the server is picked by id and the channel from the dropdown
+  list.
 - **Audit log path** — `post-creation-flow.json` reads and writes the Excel
   audit log at `/n8n/data/FirstAIMoversP3.xlsx` in two nodes ("Read/Write
   Files from Disk" and "Read/Write Files from Disk1"). The read tolerates a
@@ -156,7 +165,10 @@ OAuth2 redirect change, in [ngrok-approval-setup.md](ngrok-approval-setup.md).
 - Each `sendAndWait` approval waits **24 h** (`limitWaitTime`). On timeout
   the approval is re-sent, up to **3 unanswered asks** per platform item —
   after that the platform is skipped for that item and a Discord
-  notification is posted. Declining still regenerates the post instead.
+  notification is posted. Declining still regenerates the post instead. The
+  whole loop lives once in `approval-loop.json`; `main.json` calls it once
+  per platform and the platform's publish target travels on the item's
+  `publishWorkflowId` field.
 - HTTP read/upload nodes retry 3× with 1 s waits; publish calls are
   deliberately **not** retried (avoids duplicate posts).
 - Any failing execution triggers `error-handler.json` via

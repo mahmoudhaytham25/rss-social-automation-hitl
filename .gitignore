@@ -1,1 +1,4 @@
 /discord-bot
+
+# Local n8n environment variables (contains N8N_ENCRYPTION_KEY, URLs)
+.env

@@ -1,0 +1,43 @@
+# Minimal reproducible n8n instance for the workflows in this repo.
+#
+# Image pin: n8nio/n8n:1.123.84 — latest 1.x patch release (2026-10-08) at the
+# time of writing. The 1.x line is used deliberately:
+#   * These exports were authored on n8n ~1.7x and are tested against the 1.x
+#     export format.
+#   * n8n >= 1.75 is required for the Discord `sendAndWait` node's
+#     `limitWaitTime` option used by the approval nodes.
+#   * n8n 2.x changes defaults (e.g. task runners, secure-cookie behaviour)
+#     and is untested here.
+# New 1.x patches ship roughly weekly — check
+# https://hub.docker.com/r/n8nio/n8n/tags and prefer the newest 1.x tag that
+# is at least a week old. Do not use `latest`/`stable` floating tags.
+#
+# Usage:  cp .env.example .env   (fill in values)
+#         docker compose up -d
+# Then import the workflows — see docs/setup.md.
+
+services:
+  n8n:
+    image: n8nio/n8n:1.123.84
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "5678:5678"
+    volumes:
+      # Persistent n8n home: database, encryption key usage, credentials,
+      # executions. Also a writable location for the audit-log xlsx if you
+      # repoint the post-creation-flow file nodes there (see docs/setup.md).
+      - n8n_data:/home/node/.n8n
+      # Read-only mount of this repo's exports so the n8n CLI can import them
+      # with workflow ids preserved — see docs/setup.md.
+      - ./workflows:/files/workflows:ro
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://localhost:5678/healthz || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+volumes:
+  n8n_data:

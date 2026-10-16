@@ -58,6 +58,41 @@ RSS Feed -> Content extraction -> Platform-specific branching -> LLM post genera
 
 ---
 
+## Architecture
+
+```mermaid
+flowchart TD
+    RSS["RSS Feed Trigger<br/>(1-min poll)"] --> MERGE["Merge"]
+    HTML["HTML content extraction"] --> MERGE
+
+    MERGE --> FBV["Add Facebook Variables"]
+    MERGE --> BSV["Add Bluesky Variables"]
+    MERGE --> LIV["Add Linkedin Variables"]
+
+    subgraph LOOP["Per-platform branch — runs for Facebook / Bluesky / LinkedIn"]
+        GEN["post-creation-flow sub-workflow<br/>Gemini AI Agent + xlsx audit log"]
+        WAIT{"Discord sendAndWait<br/>approval"}
+        PUB["platform branch sub-workflow<br/>(publish)"]
+        REASK["re-send approval<br/>(24h wait, max 3 asks)"]
+        SKIP["skip platform +<br/>Discord notification"]
+
+        GEN --> WAIT
+        WAIT -->|approved| PUB
+        WAIT -->|declined| GEN
+        WAIT -->|no response in 24h| REASK
+        REASK --> WAIT
+        REASK -->|3 unanswered asks| SKIP
+    end
+
+    FBV --> GEN
+    BSV --> GEN
+    LIV --> GEN
+
+    ALL["any of the 5 workflow exports"] -.->|"settings.errorWorkflow on failure"| ERR["error-handler.json<br/>Error Trigger → Discord notification"]
+```
+
+---
+
 ## Result
 The automated workflow functions correctly:
 
@@ -72,6 +107,25 @@ The automated workflow functions correctly:
 
 ---
 
+## Getting started
+
+Prerequisites: Docker with the Compose plugin, or an existing n8n **≥ 1.75**.
+
+```bash
+cp .env.example .env          # set N8N_ENCRYPTION_KEY, WEBHOOK_URL, timezone
+docker compose up -d          # n8n on http://localhost:5678
+```
+
+Import all six workflows with their ids preserved (order matters — sub-workflows and the error handler before `main.json`, whose `executeWorkflow` nodes and `settings.errorWorkflow` reference them by id):
+
+```bash
+for f in error-handler post-creation-flow bluesky-branch facebook-branch linkedin-branch main; do
+  docker compose exec n8n n8n import:workflow --input="/files/workflows/${f}.json"
+done
+```
+
+Then create the five credentials (Gemini API key, Discord OAuth2, Facebook Page token, Bluesky custom auth, LinkedIn OAuth2), update the environment-specific values, and activate `main.json`'s workflow **last** — its RSS trigger starts polling on activation. Full walkthrough: **[docs/setup.md](docs/setup.md)**.
+
 ## Workflow Files
 
 All n8n workflow exports live in [`workflows/`](workflows/):
@@ -83,6 +137,9 @@ All n8n workflow exports live in [`workflows/`](workflows/):
 | `bluesky-branch.json` | Bluesky publishing (ATProto auth, facets, image blobs) |
 | `facebook-branch.json` | Facebook publishing (Graph API, image upload) |
 | `linkedin-branch.json` | LinkedIn publishing |
+| `error-handler.json` | Error Trigger → Discord notification, wired via `settings.errorWorkflow` in every export |
+
+Exports ship `active: false` and without `meta`/`versionId` — re-exports are cleaned by [`scripts/normalize-exports.py`](scripts/normalize-exports.py). A pinned local n8n runs via [`docker-compose.yml`](docker-compose.yml) + [`.env.example`](.env.example); see [docs/setup.md](docs/setup.md) for the full import/credential runbook.
 
 ## Screenshots
 
@@ -96,6 +153,7 @@ All n8n workflow exports live in [`workflows/`](workflows/):
 
 ## Extras
 
+- [Setup runbook](docs/setup.md) — Docker Compose quickstart, id-preserving CLI import, the five-credential matrix, and environment-specific values to replace.
 - [Exposing n8n approvals to other devices with ngrok](docs/ngrok-approval-setup.md) — needed if approving posts from your phone while self-hosting n8n locally.
 - [`tests/`](tests/) — a pytest suite that validates the workflow exports (wiring, field references, secrets scan). More rigor than an n8n repo needs; see [tests/README.md](tests/README.md) for why it exists.
 
@@ -103,6 +161,12 @@ All n8n workflow exports live in [`workflows/`](workflows/):
 
 - **Audit log path is environment-specific:** `post-creation-flow.json` reads and writes the Excel audit log at `/n8n/data/FirstAIMoversP3.xlsx` (the "Read/Write Files from Disk" nodes). Update this path to a location that exists in your n8n instance. If the file is missing, the read node is configured to skip audit logging (`onError: continueErrorOutput`) rather than fail the run.
 - **Regeneration cap:** if generated content exceeds the platform character limit, the post-creation sub-workflow retries the LLM at most 3 times (`attempts` counter incremented in "Code2", checked in "If2") before returning the last generated output.
+
+**Reliability notes:**
+
+- **Approval timeout / re-ask policy:** each Discord `sendAndWait` approval waits up to 24 h (`limitWaitTime`); on timeout the approval is re-sent, up to 3 unanswered asks per platform — after that the platform is skipped for the item and a Discord notification is posted. Declines still regenerate the post.
+- **Retry policy:** read/upload HTTP nodes retry 3 times with 1 s waits; publish calls are deliberately **not** retried, to avoid duplicate posts.
+- **Error workflow:** every export references `error-handler.json` via `settings.errorWorkflow` — a failed execution posts a Discord notification instead of failing silently.
 
 ---
 

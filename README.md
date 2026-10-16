@@ -144,9 +144,9 @@ Exports ship `active: false` and without `meta`/`versionId` — re-exports are c
 
 ## Screenshots
 
-| Main workflow | Post creation |
-|---|---|
-| ![Main workflow](screenshots/main.jpg) | ![Post creation flow](screenshots/post-creation.jpg) |
+| Main workflow | Approval loop (shared) | Post creation |
+|---|---|---|
+| ![Main workflow](screenshots/main.jpg) | ![Approval loop](screenshots/approval-loop.jpg) | ![Post creation flow](screenshots/post-creation.jpg) |
 
 | Bluesky | Facebook | LinkedIn |
 |---|---|---|

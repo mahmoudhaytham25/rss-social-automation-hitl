@@ -481,15 +481,33 @@ class TestNoPlaintextSecrets:
 # 6. Export hygiene — no per-instance state committed to git
 # ---------------------------------------------------------------------------
 
+# Top-level keys that are instance state or runtime bookkeeping — must match
+# STRIPPED_KEYS in scripts/normalize-exports.py.
+BANNED_TOP_LEVEL_KEYS = (
+    "meta",
+    "versionId",
+    "activeVersionId",
+    "versionCounter",
+    "isArchived",
+    "shared",
+    "staticData",
+    "triggerCount",
+    "createdAt",
+    "updatedAt",
+)
+
+
 class TestExportHygiene:
-    """``meta``/``versionId`` are per-instance bookkeeping that churns the
-    diff on every re-export, and ``active: true`` would auto-activate the
-    workflow on import into another n8n instance. Neither belongs in git."""
+    """Instance-specific bookkeeping (``meta``, ``versionId``, and the
+    extras newer n8n versions add — see ``BANNED_TOP_LEVEL_KEYS``) churns
+    the diff on every re-export, and ``active: true`` would auto-activate
+    the workflow on import into another n8n instance. None of it belongs
+    in git."""
 
     @pytest.mark.parametrize("filename", WORKFLOW_FILES)
     def test_no_instance_specific_top_level_keys(self, filename):
         workflow = load_workflow(filename)
-        for key in ("meta", "versionId"):
+        for key in BANNED_TOP_LEVEL_KEYS:
             assert key not in workflow, f"{filename}: top-level {key!r} leaked"
 
     @pytest.mark.parametrize("filename", WORKFLOW_FILES)

@@ -22,6 +22,7 @@ WORKFLOW_FILES = (
     "bluesky-branch.json",
     "facebook-branch.json",
     "linkedin-branch.json",
+    "error-handler.json",
 )
 
 
@@ -35,6 +36,14 @@ def load_workflow(filename: str) -> dict:
 def load_all_workflows() -> dict:
     """Return ``{filename: parsed_workflow}`` for every exported file."""
     return {name: load_workflow(name) for name in WORKFLOW_FILES}
+
+
+def workflow_by_id() -> dict:
+    """Return ``{workflow_id: (filename, workflow_name)}`` across all exports."""
+    return {
+        workflow["id"]: (filename, workflow.get("name"))
+        for filename, workflow in load_all_workflows().items()
+    }
 
 
 @pytest.fixture(scope="session")
@@ -107,6 +116,38 @@ def ancestors(workflow: dict, node_name: str) -> set:
             if parent not in seen:
                 seen.add(parent)
                 stack.append(parent)
+    return seen
+
+
+def successors(workflow: dict, node_name: str) -> list:
+    """``[(output_index, target_name), ...]`` for a node's outgoing main edges.
+
+    ``connections[source]["main"]`` is a list of edge lists; the position in
+    that outer list is the node's output index (``[[]]`` = unconnected
+    output).
+    """
+    outputs = (
+        workflow.get("connections", {}).get(node_name, {}).get("main", [])
+    )
+    return [
+        (output_index, edge["node"])
+        for output_index, edge_list in enumerate(outputs)
+        for edge in edge_list
+    ]
+
+
+def descendants(workflow: dict, node_name: str) -> set:
+    """All transitive downstream node names via main edges (cycle-safe —
+    the approval re-ask edges loop back onto earlier nodes)."""
+    seen: set = set()
+    stack = [node_name]
+    while stack:
+        current = stack.pop()
+        for _output_index, target in successors(workflow, current):
+            if target not in seen:
+                seen.add(target)
+                stack.append(target)
+    seen.discard(node_name)
     return seen
 
 

@@ -9,7 +9,17 @@ the wiring and expression invariants behind recent bugfixes:
 * ``JSON.stringify`` escaping instead of manual backslash escaping
   (bluesky / facebook / linkedin branches),
 * non-fatal ``onError`` on the file-read node (post-creation flow),
-* no plaintext secrets in any export.
+* no plaintext secrets in any export,
+* export hygiene — no ``meta``/``versionId`` keys, ``active`` falsy,
+  unique workflow ids across all six exports,
+* the Discord approval loop — 24h ``limitWaitTime`` on ``sendAndWait``,
+  bounded re-ask via ``Classify``/``Route`` nodes with a notify-and-skip
+  exit (main),
+* retry policy — transient fetches retry ``3x`` with ``1s`` backoff,
+  publish calls never retry,
+* every workflow routed to the shared ``error-handler`` sub-workflow,
+* every non-trigger node reachable forward from a trigger (no dead
+  wiring beyond the documented ``ai_*`` satellites).
 
 Run with::
 
@@ -25,6 +35,7 @@ import pytest
 from conftest import (
     WORKFLOW_FILES,
     ancestors,
+    descendants,
     find_nodes,
     iter_edges,
     iter_js_code,
@@ -33,8 +44,11 @@ from conftest import (
     load_all_workflows,
     load_workflow,
     merge_resolve_clash,
+    node_by_name,
     node_names,
+    successors,
     upstream_node_names,
+    workflow_by_id,
 )
 
 MAIN = "main.json"
@@ -42,6 +56,9 @@ POST_CREATION = "post-creation-flow.json"
 BLUESKY = "bluesky-branch.json"
 FACEBOOK = "facebook-branch.json"
 LINKEDIN = "linkedin-branch.json"
+ERROR_HANDLER = "error-handler.json"
+
+ORIGINAL_FILES = tuple(f for f in WORKFLOW_FILES if f != ERROR_HANDLER)
 
 
 # ---------------------------------------------------------------------------
@@ -457,4 +474,349 @@ class TestNoPlaintextSecrets:
         assert not hits, (
             f"{filename}: literal values for sensitive named parameters:\n"
             + "\n".join(hits)
+        )
+
+
+# ---------------------------------------------------------------------------
+# 6. Export hygiene — no per-instance state committed to git
+# ---------------------------------------------------------------------------
+
+class TestExportHygiene:
+    """``meta``/``versionId`` are per-instance bookkeeping that churns the
+    diff on every re-export, and ``active: true`` would auto-activate the
+    workflow on import into another n8n instance. Neither belongs in git."""
+
+    @pytest.mark.parametrize("filename", WORKFLOW_FILES)
+    def test_no_instance_specific_top_level_keys(self, filename):
+        workflow = load_workflow(filename)
+        for key in ("meta", "versionId"):
+            assert key not in workflow, f"{filename}: top-level {key!r} leaked"
+
+    @pytest.mark.parametrize("filename", WORKFLOW_FILES)
+    def test_workflow_is_exported_inactive(self, filename):
+        workflow = load_workflow(filename)
+        assert not workflow.get("active"), (
+            f"{filename}: 'active' must be falsy, got "
+            f"{workflow.get('active')!r}"
+        )
+
+    def test_workflow_ids_are_unique(self):
+        """executeWorkflow / errorWorkflow settings reference workflows by
+        id; a collision would silently point at the wrong export."""
+        by_id = workflow_by_id()
+        assert len(by_id) == len(WORKFLOW_FILES), (
+            f"workflow ids are not unique — {len(WORKFLOW_FILES)} files "
+            f"map to {len(by_id)} ids: {sorted(by_id)}"
+        )
+
+
+# ---------------------------------------------------------------------------
+# 7. Discord approval loop — bounded re-ask with timeout (main.json)
+# ---------------------------------------------------------------------------
+
+# The three per-platform approval loops. ``MergeN`` combines the generated
+# post with the feed item; the discord ``sendAndWait`` then pauses for human
+# approval; ``Classify`` (code) turns the reply into a ``decision`` bounded
+# by ``MAX_REASKS``; ``Route`` (switch) fans it out to
+# [publish, regenerate, re-ask, skip+notify].
+APPROVAL_LOOPS = {
+    "facebook": {
+        "send_wait": "Send message and wait for response",
+        "merge": "Merge1",
+        "classify": "Classify FB approval",
+        "route": "Route FB approval",
+        "post": "Post to Facebook",
+        "add_vars": "Add Facebook Variables",
+        "notify": "Notify FB skipped",
+    },
+    "bluesky": {
+        "send_wait": "Send message and wait for response1",
+        "merge": "Merge2",
+        "classify": "Classify BSKY approval",
+        "route": "Route BSKY approval",
+        "post": "Post to Bluesky",
+        "add_vars": "Add Bluesky Variables",
+        "notify": "Notify BSKY skipped",
+    },
+    "linkedin": {
+        "send_wait": "Send message and wait for response2",
+        "merge": "Merge3",
+        "classify": "Classify LI approval",
+        "route": "Route LI approval",
+        "post": "Post to Linkedin",
+        "add_vars": "Add Linkedin Variables",
+        "notify": "Notify LI skipped",
+    },
+}
+
+LEGACY_APPROVAL_NODES = {"If", "If1", "If2"}
+
+
+class TestApprovalTimeout:
+    """Pins the approval-loop contract: a 24h wait cap, a bounded number of
+    re-asks decided by the Classify code node, and a Route switch whose four
+    outputs land on the right targets — including the re-ask edge that loops
+    back onto the sendAndWait node itself."""
+
+    @pytest.mark.parametrize(
+        "loop", APPROVAL_LOOPS.values(), ids=APPROVAL_LOOPS.keys()
+    )
+    def test_send_and_wait_has_24h_limit(self, loop):
+        """Without ``limitWaitTime`` a sendAndWait waits forever — an
+        unanswered approval stalls the whole pipeline indefinitely."""
+        node = node_by_name(load_workflow(MAIN), loop["send_wait"])
+        values = (
+            node.get("parameters", {})
+            .get("options", {})
+            .get("limitWaitTime", {})
+            .get("values")
+        )
+        if isinstance(values, list):  # fixedCollection may export a list
+            assert len(values) == 1, (
+                f"{loop['send_wait']!r}: unexpected limitWaitTime shape"
+            )
+            values = values[0]
+        assert isinstance(values, dict), (
+            f"{loop['send_wait']!r}: options.limitWaitTime.values missing"
+        )
+        assert values.get("resumeAmount") == 24
+        assert values.get("resumeUnit") == "hours"
+
+    @pytest.mark.parametrize(
+        "loop", APPROVAL_LOOPS.values(), ids=APPROVAL_LOOPS.keys()
+    )
+    def test_loop_is_wired_send_wait_merge_classify_route(self, loop):
+        workflow = load_workflow(MAIN)
+        for source, expected in (
+            (loop["send_wait"], loop["merge"]),
+            (loop["merge"], loop["classify"]),
+            (loop["classify"], loop["route"]),
+        ):
+            targets = {t for _i, t in successors(workflow, source)}
+            assert expected in targets, (
+                f"{source!r} must feed {expected!r}; got {sorted(targets)}"
+            )
+
+    @pytest.mark.parametrize(
+        "loop", APPROVAL_LOOPS.values(), ids=APPROVAL_LOOPS.keys()
+    )
+    def test_classify_is_code_node_with_bounded_reask_logic(self, loop):
+        node = node_by_name(load_workflow(MAIN), loop["classify"])
+        assert node["type"].endswith(".code"), (
+            f"{loop['classify']!r}: expected a code node, "
+            f"got {node['type']!r}"
+        )
+        code = node.get("parameters", {}).get("jsCode", "")
+        for token in ("MAX_REASKS", "decision", "reasks"):
+            assert token in code, (
+                f"{loop['classify']!r}: jsCode is missing {token!r} — "
+                "the re-ask loop may be unbounded"
+            )
+
+    @pytest.mark.parametrize(
+        "loop", APPROVAL_LOOPS.values(), ids=APPROVAL_LOOPS.keys()
+    )
+    def test_route_switch_outputs_hit_the_right_targets(self, loop):
+        workflow = load_workflow(MAIN)
+        route = node_by_name(workflow, loop["route"])
+        assert route["type"].endswith(".switch"), (
+            f"{loop['route']!r}: expected a switch node, "
+            f"got {route['type']!r}"
+        )
+        outputs = (
+            workflow.get("connections", {})
+            .get(loop["route"], {})
+            .get("main", [])
+        )
+        assert len(outputs) == 4, (
+            f"{loop['route']!r}: expected exactly 4 outputs "
+            "(publish / regenerate / re-ask / skip), "
+            f"got {len(outputs)}"
+        )
+        by_index = {}
+        for output_index, target in successors(workflow, loop["route"]):
+            by_index.setdefault(output_index, []).append(target)
+        assert by_index.get(0) == [loop["post"]], (
+            "output[0] must publish to the platform"
+        )
+        assert by_index.get(1) == [loop["add_vars"]], (
+            "output[1] must regenerate via the variables node"
+        )
+        assert by_index.get(2) == [loop["send_wait"]], (
+            "output[2] is the re-ask loop — it must feed back into the "
+            "platform's own sendAndWait node"
+        )
+        assert by_index.get(3) == [loop["notify"]], (
+            "output[3] must notify that the post was skipped"
+        )
+
+    @pytest.mark.parametrize(
+        "loop", APPROVAL_LOOPS.values(), ids=APPROVAL_LOOPS.keys()
+    )
+    def test_notify_node_is_a_dead_end_discord_message(self, loop):
+        workflow = load_workflow(MAIN)
+        node = node_by_name(workflow, loop["notify"])
+        assert node["type"].endswith("discord"), (
+            f"{loop['notify']!r}: expected a discord node, "
+            f"got {node['type']!r}"
+        )
+        outgoing = [
+            edge
+            for source, _conn_type, edge in iter_edges(workflow)
+            if source == loop["notify"]
+        ]
+        assert not outgoing, (
+            f"{loop['notify']!r} must be a terminal notification — "
+            "nothing should consume its output"
+        )
+
+    def test_legacy_if_nodes_are_gone(self):
+        """The single-branch If/If1/If2 approval checks were replaced by the
+        Classify/Route loop; if they reappear the re-ask cap is bypassed."""
+        leftover = node_names(load_workflow(MAIN)) & LEGACY_APPROVAL_NODES
+        assert not leftover, (
+            f"legacy approval nodes still present: {sorted(leftover)}"
+        )
+
+
+# ---------------------------------------------------------------------------
+# 8. Retry policy — transient fetches retry, publish calls never do
+# ---------------------------------------------------------------------------
+
+# External fetches that are safe to repeat: they don't publish anything, so
+# a retry can't produce duplicates.
+RETRY_NODES = (
+    (BLUESKY, "Open BlueSky Session"),
+    (BLUESKY, "Download Image from RSS"),
+    (BLUESKY, "Uploading Image to BlueSky Blob Storage"),
+    (FACEBOOK, "Get Facebook Page ID"),
+    (FACEBOOK, "Image upload to FB"),
+    (LINKEDIN, "Download Image from RSS"),
+)
+
+# The actual publish calls. Retrying these can double-post when the first
+# attempt succeeded but the response was lost.
+PUBLISH_NODES = (
+    (BLUESKY, "Post Creation w/ Clickable Link, Hashtag, Embedded Image"),
+    (BLUESKY, "Post Creation w/ Clickable Link, Hashtag, Embedded Image1"),
+    (FACEBOOK, "Post Creation FB"),
+    (FACEBOOK, "Post Creation FB1"),
+    (LINKEDIN, "Create a post WO/img"),
+    (LINKEDIN, "Create a post W/img"),
+)
+
+
+class TestRetries:
+    @pytest.mark.parametrize("filename,node_name", RETRY_NODES)
+    def test_transient_fetch_nodes_retry_3x_with_1s_backoff(
+        self, filename, node_name
+    ):
+        node = node_by_name(load_workflow(filename), node_name)
+        assert node.get("retryOnFail") is True, (
+            f"{filename} / {node_name!r}: retryOnFail must be true"
+        )
+        assert node.get("maxTries") == 3, (
+            f"{filename} / {node_name!r}: maxTries must be 3, "
+            f"got {node.get('maxTries')!r}"
+        )
+        assert node.get("waitBetweenTries") == 1000, (
+            f"{filename} / {node_name!r}: waitBetweenTries must be 1000, "
+            f"got {node.get('waitBetweenTries')!r}"
+        )
+
+    @pytest.mark.parametrize("filename,node_name", PUBLISH_NODES)
+    def test_publish_nodes_never_retry(self, filename, node_name):
+        node = node_by_name(load_workflow(filename), node_name)
+        assert not node.get("retryOnFail"), (
+            f"{filename} / {node_name!r}: publish calls must not retry — "
+            "a lost response would double-post"
+        )
+
+
+# ---------------------------------------------------------------------------
+# 9. Error workflow — every original routes failures to error-handler
+# ---------------------------------------------------------------------------
+
+class TestErrorWorkflow:
+    """The five originals must name the shared error-handler workflow in
+    ``settings.errorWorkflow``, and that handler must fan an ``errorTrigger``
+    into a discord notification."""
+
+    @pytest.mark.parametrize("filename", ORIGINAL_FILES)
+    def test_settings_point_at_error_handler(self, filename):
+        workflow = load_workflow(filename)
+        handler_id = load_workflow(ERROR_HANDLER)["id"]
+        assert workflow.get("settings", {}).get("errorWorkflow") == (
+            handler_id
+        ), (
+            f"{filename}: settings.errorWorkflow must be {handler_id!r}, "
+            f"got {workflow.get('settings', {}).get('errorWorkflow')!r}"
+        )
+
+    def test_error_trigger_feeds_a_discord_node(self):
+        workflow = load_workflow(ERROR_HANDLER)
+        triggers = find_nodes(
+            workflow, lambda n: n["type"].endswith("errorTrigger")
+        )
+        assert triggers, f"{ERROR_HANDLER}: no errorTrigger node found"
+        for trigger in triggers:
+            targets = {t for _i, t in successors(workflow, trigger["name"])}
+            discord = sorted(
+                t
+                for t in targets
+                if node_by_name(workflow, t)["type"].endswith("discord")
+            )
+            assert discord, (
+                f"{ERROR_HANDLER}: errorTrigger {trigger['name']!r} has no "
+                f"discord node directly downstream (targets: {sorted(targets)})"
+            )
+
+
+# ---------------------------------------------------------------------------
+# 10. Reachability — no dead wiring beyond the documented exceptions
+# ---------------------------------------------------------------------------
+
+# Trigger/start node types that seed the forward traversal.
+TRIGGER_TYPES = (
+    "rssFeedReadTrigger",
+    "executeWorkflowTrigger",
+    "errorTrigger",
+)
+
+# Nodes legitimately not forward-reachable from a trigger via ``main``
+# edges, keyed by filename. Pre-existing: in post-creation-flow these three
+# satellites feed ``AI Agent`` through ai_* connection types (language
+# model, tool, output parser) — those edges point *into* the agent, so
+# forward main-edge traversal can never reach them. They are wired, not
+# dead. Anything else landing in the unreachable set is genuinely orphaned
+# wiring and must fail.
+KNOWN_UNREACHABLE = {
+    POST_CREATION: {
+        "Structured Output Parser",
+        "Google Gemini Chat Model",
+        "Character Count",
+    },
+}
+
+
+class TestReachability:
+    @pytest.mark.parametrize("filename", WORKFLOW_FILES)
+    def test_unreachable_nodes_match_the_known_set(self, filename):
+        workflow = load_workflow(filename)
+        triggers = {
+            node["name"]
+            for node in workflow["nodes"]
+            if any(node["type"].endswith(t) for t in TRIGGER_TYPES)
+        }
+        assert triggers, f"{filename}: no trigger/start node found"
+        reachable = set(triggers)
+        for name in triggers:
+            reachable |= descendants(workflow, name)
+        unreachable = node_names(workflow) - reachable
+        assert unreachable == KNOWN_UNREACHABLE.get(filename, set()), (
+            f"{filename}: unreachable-from-trigger nodes are "
+            f"{sorted(unreachable)}; expected exactly "
+            f"{sorted(KNOWN_UNREACHABLE.get(filename, set()))} "
+            "(update KNOWN_UNREACHABLE only for legitimately ai_*-wired "
+            "satellite nodes)"
         )

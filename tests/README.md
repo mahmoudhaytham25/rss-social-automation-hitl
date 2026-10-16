@@ -19,6 +19,15 @@ The suite exists anyway, for three specific reasons:
    checks for dangling node connections, and scans for accidentally exported
    plaintext secrets — real failure modes when moving workflows between instances.
 
+Beyond regression guards, the suite now also pins *operational* invariants: the
+Discord approval loop (24h `limitWaitTime`, a bounded re-ask via the Classify/Route
+nodes, and a notify-and-skip exit), the retry policy (transient fetches retry
+3×/1s, publish calls never retry), error routing (every workflow points at the
+shared `error-handler` export), and export hygiene (no `meta`/`versionId`, inactive
+exports, unique workflow ids, no dead wiring). These are the things that would
+silently degrade a live instance — duplicate posts, stalled approvals, lost error
+notifications — without ever producing an obviously broken export.
+
 The tests treat the workflow JSONs as data and assert structural properties — they
 don't execute the workflows. Run them with:
 
